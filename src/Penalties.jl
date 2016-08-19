@@ -75,14 +75,13 @@ function ElasticNetPenalty(α::Number = 0.5)
     ElasticNetPenalty(α)
 end
 function value{T<:Number}(p::ElasticNetPenalty{T}, λ::T, x::T)
-    λ * (value(L1Penalty(), p.α, x) + value(L2Penalty(), one(T) - p.α, x))
+    λ * p.α * abs(x) + λ * (one(T) - p.α) * T(0.5) * x * x  # FIXME?
 end
 function deriv{T<:Number}(p::ElasticNetPenalty{T}, λ::T, x::T)
-     λ * (deriv(L1Penalty(), p.α, x) + deriv(L2Penalty(), one(T) - p.α, x))
+    λ * p.α * sign(x) + λ * (one(T) - p.α) * x
 end
 function prox{T<:Number}(p::ElasticNetPenalty, λ::T, x::T)
-    l1prox = prox(L1Penalty(), p.α * λ, x)
-    prox(L2Penalty(), (one(T) - p.α) * λ, l1prox)
+    soft_thresh(x, p.α * λ) / (one(T) + λ * (one(T) - p.α))
 end
 
 end
