@@ -17,11 +17,11 @@ function value{T <: Number}(p::Penalty, x::AA{T})
     end
     result
 end
-function value{T <: Number}(p::Penalty, x::AA{T}, factor::AA{T})
-    @assert size(x) == size(factor)
+function value{T <: Number}(p::Penalty, x::AA{T}, ρ::AA{T})
+    @assert size(x) == size(ρ)
     result = zero(T)
     for i in eachindex(x)
-        @inbounds result += factor[i] * value(p, x[i])
+        @inbounds result += ρ[i] * value(p, x[i])
     end
     result
 end
@@ -34,10 +34,10 @@ function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T})
     end
     dest
 end
-function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, factor::AA{T})
-    @assert size(dest) == size(x) == size(factor)
+function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, ρ::AA{T})
+    @assert size(dest) == size(x) == size(ρ)
     for i in eachindex(dest)
-        @inbounds dest[i] = factor[i] * deriv(p, x[i])
+        @inbounds dest[i] = ρ[i] * deriv(p, x[i])
     end
     dest
 end
@@ -49,10 +49,10 @@ function prox!{T<:Number}(p::Penalty, x::AA{T})
     end
     x
 end
-function prox!{T<:Number}(p::Penalty, x::AA{T}, factor::AA{T})
-    @assert size(x) == size(factor)
+function prox!{T<:Number}(p::Penalty, x::AA{T}, ρ::AA{T})
+    @assert size(x) == size(ρ)
     for i in eachindex(x)
-        @inbounds x[i] = prox(p, x[i], factor[i] * p.λ)
+        @inbounds x[i] = prox(p, x[i], ρ[i])
     end
     x
 end
@@ -60,6 +60,9 @@ end
 
 soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(T), abs(x) - λ)
 
+
+prox(p::Penalty, x::Number) = _prox(p, x, p.λ)
+prox{T<:Number}(p::Penalty, x::T, ρ::T) = _prox(p, x, p.λ * ρ)
 
 
 #-------------------------------------------------------------------------# L1Penalty
@@ -70,7 +73,8 @@ end
 L1Penalty(λ::Number = 0.1) = L1Penalty(λ)
 value{T<:Number}(p::L1Penalty{T}, x::T) = p.λ * abs(x)
 deriv{T<:Number}(p::L1Penalty{T}, x::T) = p.λ * sign(x)
-prox{T<:Number}(p::L1Penalty{T}, x::T, λ::T = p.λ) = soft_thresh(x, λ)
+_prox{T<:Number}(p::L1Penalty{T}, x::T, λ::T) = soft_thresh(x, λ)
+
 
 #-------------------------------------------------------------------------# L2Penalty
 "Squared L2-Norm Penalty: f(x) = vecnorm(x, 2) ^ 2"
@@ -80,7 +84,7 @@ end
 L2Penalty(λ::Number = 0.1) = L2Penalty(λ)
 value{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * T(.5) * x * x # FIXME?
 deriv{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * x
-prox{T<:Number}(p::L2Penalty{T}, x::T, λ::T = p.λ) = x / (one(T) + λ)
+_prox{T<:Number}(p::L2Penalty{T}, x::T, λ::T) = x / (one(T) + λ)
 
 #-----------------------------------------------------------------------# ENetPenalty
 "Weighted average of L1Penalty and L2Penalty"
@@ -95,7 +99,7 @@ end
 function deriv{T<:Number}(p::ENetPenalty{T}, x::T)
     p.λ * (p.α * sign(x) + (one(T) - p.α) * x)
 end
-function prox{T<:Number}(p::ENetPenalty{T}, x::T, λ::T = p.λ)
+function _prox{T<:Number}(p::ENetPenalty{T}, x::T, ρ::T)
     soft_thresh(x / (one(T) + (one(T) - p.α) * λ), p.α * λ)
 end
 
