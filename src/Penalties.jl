@@ -7,41 +7,59 @@ export
     L2Penalty,
     ElasticNetPenalty
 
+typealias AA{T} AbstractArray{T}
+
 #------------------------------------------------------------------# abstract methods
-function value{T <: Number}(p::Penalty, x::AbstractArray{T})
+function value{T <: Number}(p::Penalty, x::AA{T})
     result = zero(T)
     for xi in x
         result += value(p, xi)
     end
     result
 end
+function value{T <: Number}(p::Penalty, x::AA{T}, factor::AA{T})
+    @assert size(x) == size(factor)
+    result = zero(T)
+    for i in eachindex(x)
+        @inbounds result += factor[i] * value(p, x[i])
+    end
+    result
+end
 
-function grad!{T<:Number}(dest::AbstractArray{T}, p::Penalty, x::AbstractArray{T})
+
+function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T})
     @assert size(dest) == size(x)
     for i in eachindex(dest)
         @inbounds dest[i] = deriv(p, x[i])
     end
     dest
 end
-function grad{T<:Number}(p::Penalty, x::AbstractArray{T})
-    dest = zeros(x)
-    grad!(dest, p, x)
+function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, factor::AA{T})
+    @assert size(dest) == size(x) == size(factor)
+    for i in eachindex(dest)
+        @inbounds dest[i] = factor[i] * deriv(p, x[i])
+    end
+    dest
 end
 
-function prox!{T<:Number}(p::Penalty, x::AbstractArray{T})
+
+function prox!{T<:Number}(p::Penalty, x::AA{T})
     for i in eachindex(x)
         @inbounds x[i] = prox(p, x[i])
     end
     x
 end
-
-
-soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(x), abs(x) - λ)
-function soft_thresh!{T<:Number}(x::AbstractArray{T}, λ::T)
+function prox!{T<:Number}(p::Penalty, x::AA{T}, factor::AA{T})
+    @assert size(x) == size(factor)
     for i in eachindex(x)
-        @inbounds x[i] = soft_thresh(x[i], λ)
+        @inbounds x[i] = prox(p, x[i], factor[i] * p.λ)
     end
+    x
 end
+
+
+soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(T), abs(x) - λ)
+
 
 
 #-------------------------------------------------------------------------# L1Penalty
@@ -50,10 +68,36 @@ type L1Penalty{T <: Number} <: Penalty
     λ::T
 end
 L1Penalty(λ::Number = 0.1) = L1Penalty(λ)
-value{T<:Number}(p::L1Penalty, x::T) = p.λ * abs(x)
-deriv{T<:Number}(p::L1Penalty, x::T) = p.λ * sign(x)
-prox{T<:Number}(p::L1Penalty, x::T) = soft_thresh(x, p.λ)
+value{T<:Number}(p::L1Penalty{T}, x::T) = p.λ * abs(x)
+deriv{T<:Number}(p::L1Penalty{T}, x::T) = p.λ * sign(x)
+prox{T<:Number}(p::L1Penalty{T}, x::T, λ::T = p.λ) = soft_thresh(x, λ)
 
+#-------------------------------------------------------------------------# L2Penalty
+"Squared L2-Norm Penalty: f(x) = vecnorm(x, 2) ^ 2"
+type L2Penalty{T <: Number} <: Penalty
+    λ::T
+end
+L2Penalty(λ::Number = 0.1) = L2Penalty(λ)
+value{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * T(.5) * x * x # FIXME?
+deriv{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * x
+prox{T<:Number}(p::L2Penalty{T}, x::T, λ::T = p.λ) = x / (one(T) + λ)
+
+#-----------------------------------------------------------------------# ENetPenalty
+"Weighted average of L1Penalty and L2Penalty"
+type ENetPenalty{T <: Number} <: Penalty
+    λ::T
+    α::T
+end
+ENetPenalty(λ::Number = 0.1, α::Number = 0.5) = ENetPenalty(λ, α)
+function value{T<:Number}(p::ENetPenalty{T}, x::T)
+    p.λ * (p.α * abs(x) + (one(T) - p.α) * T(.5) * x * x) # FIXME?
+end
+function deriv{T<:Number}(p::ENetPenalty{T}, x::T)
+    p.λ * (p.α * sign(x) + (one(T) - p.α) * x)
+end
+function prox{T<:Number}(p::ENetPenalty{T}, x::T, λ::T = p.λ)
+    soft_thresh(x / (one(T) + (one(T) - p.α) * λ), p.α * λ)
+end
 
 
 end
