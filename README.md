@@ -15,13 +15,21 @@ pen = L1Penalty(.1)
 β = randn(5)
 storage = zeros(5)
 
-# most penalties have methods which operate on scalars or arrays
+# element-wise penalties have methods which operate on scalars
 value(pen, β[1])
-value(pen, β)
-
 deriv(pen, β[1])
-grad!(storage, pen, β)
-
 prox!(pen, β[1])
+
+# element-wise penalties also work with arbitrary arrays
+value(pen, β)
+grad!(storage, pen, β)
 prox!(pen, β)
+
+# Scaling parameters can also be used
+# This provides element-wise tuning parameters λi = λ * scaling[i]
+scaling = rand(5)
+
+value(pen, β, scaling)
+grad!(storage, pen, β, scaling)
+prox!(pen, β, scaling)
 ```
