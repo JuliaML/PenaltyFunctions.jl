@@ -64,7 +64,12 @@ end
 
 
 soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(T), abs(x) - λ)
-
+function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
+    for i in eachindex(x)
+        @inbounds x[i] = soft_thresh(x[i], λ)
+    end
+    x
+end
 
 value{T<:Number}(p::Penalty, x::T, ρ::T) = ρ * value(p, x)
 deriv{T<:Number}(p::Penalty, x::T, ρ::T) = ρ * deriv(p, x)

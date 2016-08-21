@@ -16,12 +16,12 @@ end
 
 function prox!{T}(A::AbstractMatrix{T},r::NuclearNormPenalty{T},ρ::T)
     svdecomp = svdfact!(A)
-    soft_iter_thres!(svdecomp.S,ρ*r.λ)
+    soft_thresh!(svdecomp.S,ρ*r.λ)
     copy!(A,full(svdecomp))
 end
 
 function prox{T}(A::AbstractMatrix{T},r::NuclearNormPenalty{T},ρ::T)
     svdecomp = svdfact(A)
-    soft_iter_thres!(svdecomp.S,ρ*r.λ)
+    soft_thresh!(svdecomp.S,ρ*r.λ)
     full(svdecomp)
 end
