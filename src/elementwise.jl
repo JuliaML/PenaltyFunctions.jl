@@ -106,6 +106,7 @@ deriv{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * x
 _prox{T<:Number}(p::L2Penalty{T}, x::T, λ::T) = x / (one(T) + λ)
 
 #-----------------------------------------------------------------# ElasticNetPenalty
+# λ₁ = λ * α, λ₂ = λ * (1 - α)
 "Weighted average of L1Penalty and L2Penalty"
 type ElasticNetPenalty{T <: Number} <: Penalty
     λ::T
