@@ -3,7 +3,7 @@ using LearnBase, Penalties
 using Base.Test
 
 @testset "Sanity Check" begin
-p = L1Penalty()
+p = L1Penalty(.1)
 β = randn(5)
 w = rand(5)
 storage = zeros(5)

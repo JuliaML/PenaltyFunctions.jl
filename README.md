@@ -12,7 +12,7 @@ This package is in development and things may break/change
 ```julia
 using Penalties
 
-p = L1Penalty()
+p = L1Penalty(.1)
 β = randn(5)
 w = rand(5)
 storage = zeros(5)
