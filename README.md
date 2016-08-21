@@ -11,25 +11,34 @@ This package is in development and things may break/change
 
 ```julia
 using Penalties
-pen = L1Penalty(.1)
+
+p = L1Penalty()
 β = randn(5)
+w = rand(5)
 storage = zeros(5)
 
-# element-wise penalties have methods which operate on scalars
-value(pen, β[1])
-deriv(pen, β[1])
-prox!(pen, β[1])
+# Evaluate on Number
+value(p, β[1])
+deriv(p, β[1])
+prox(p, β[1])
 
-# element-wise penalties also work with arbitrary arrays
-value(pen, β)
-grad!(storage, pen, β)
-prox!(pen, β)
+# Evaluate on Number with scaled λ
+value(p, β[1], w[1])
+deriv(p, β[1], w[1])
+prox(p, β[1], w[1])
 
-# Scaling parameters can also be used
-# This provides element-wise tuning parameters λi = λ * scaling[i]
-scaling = rand(5)
+# Evaluate on array
+value(p, β)
+grad!(storage, p, β)
+prox!(p, β)
 
-value(pen, β, scaling)
-grad!(storage, pen, β, scaling)
-prox!(pen, β, scaling)
+# Evaluate on array with scaled λ
+value(p, β, w[1])
+grad!(storage, p, β, w[1])
+prox!(p, β, w[1])
+
+# Evaluate on array with element-wise scaled λ
+value(p, β, w)
+grad!(storage, p, β, w)
+prox!(p, β, w)
 ```
