@@ -71,6 +71,7 @@ function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
     x
 end
 
+
 value{T<:Number}(p::Penalty, x::T, ρ::T) = ρ * value(p, x)
 deriv{T<:Number}(p::Penalty, x::T, ρ::T) = ρ * deriv(p, x)
 prox(p::Penalty, x::Number) = _prox(p, x, p.λ)
@@ -82,7 +83,10 @@ prox{T<:Number}(p::Penalty, x::T, ρ::T) = _prox(p, x, p.λ * ρ)
 type L1Penalty{T <: Number} <: Penalty
     λ::T
 end
-L1Penalty(λ::Number = 0.1) = L1Penalty(λ)
+function L1Penalty(λ::Number = 0.1)
+    @assert λ >= zero(λ)
+    L1Penalty(λ)
+end
 value{T<:Number}(p::L1Penalty{T}, x::T) = p.λ * abs(x)
 deriv{T<:Number}(p::L1Penalty{T}, x::T) = p.λ * sign(x)
 _prox{T<:Number}(p::L1Penalty{T}, x::T, λ::T) = soft_thresh(x, λ)
@@ -93,24 +97,79 @@ _prox{T<:Number}(p::L1Penalty{T}, x::T, λ::T) = soft_thresh(x, λ)
 type L2Penalty{T <: Number} <: Penalty
     λ::T
 end
-L2Penalty(λ::Number = 0.1) = L2Penalty(λ)
+function L2Penalty(λ::Number = 0.1)
+    @assert λ >= zero(λ)
+    L2Penalty(λ)
+end
 value{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * T(.5) * x * x
 deriv{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * x
 _prox{T<:Number}(p::L2Penalty{T}, x::T, λ::T) = x / (one(T) + λ)
 
-#-----------------------------------------------------------------------# ElasticNetPenalty
+#-----------------------------------------------------------------# ElasticNetPenalty
 "Weighted average of L1Penalty and L2Penalty"
 type ElasticNetPenalty{T <: Number} <: Penalty
     λ::T
     α::T
 end
-ElasticNetPenalty(λ::Number = 0.1, α::Number = 0.5) = ElasticNetPenalty(λ, α)
+function ElasticNetPenalty(λ::Number = 0.1, α::Number = 0.5)
+    @assert λ >= zero(λ)
+    @assert zero(λ) <= α <= one(λ)
+    ElasticNetPenalty(λ, α)
+end
 function value{T<:Number}(p::ElasticNetPenalty{T}, x::T)
     p.λ * (p.α * abs(x) + (one(T) - p.α) * T(.5) * x * x)
 end
 function deriv{T<:Number}(p::ElasticNetPenalty{T}, x::T)
     p.λ * (p.α * sign(x) + (one(T) - p.α) * x)
 end
-function _prox{T<:Number}(p::ElasticNetPenalty{T}, x::T, ρ::T)
+function _prox{T<:Number}(p::ElasticNetPenalty{T}, x::T, λ::T)
     soft_thresh(x / (one(T) + (one(T) - p.α) * λ), p.α * λ)
+end
+
+
+#-----------------------------------------------------------------------# SCADPenalty
+# http://www.pstat.ucsb.edu/student%20seminar%20doc/SCAD%20Jian%20Shi.pdf
+# For prox: http://arxiv.org/pdf/1412.2999.pdf
+# Needs tests
+type SCADPenalty{T <: Number} <: Penalty
+    λ::T
+    a::T
+end
+function SCADPenalty(λ::Number = 0.1, a::Number = 3.7)
+    @assert λ >= zero(λ)
+    @assert a > T(2)
+    SCADPenalty(λ, a)
+end
+function value{T <: Number}(p::SCADPenalty{T}, x::T)
+    abx = abs(x)
+    a, λ = p.a, p.λ
+    if abx < λ
+        return λ * abx
+    elseif abx <= λ * a
+        return -T(0.5) * (abx ^ 2 - T(2) * a * λ * abx + λ ^ 2) / (a - 1)
+    else
+        return T(0.5) * (a + 1) * λ * λ
+    end
+end
+function deriv{T <: Number}(p::SCADPenalty{T}, x::T)
+    abx = abs(x)
+    a, λ = p.a, p.λ
+    if abx < λ
+        return λ * sign(x)
+    elseif abx <= λ * a
+        return -(abx - a * λ * sign(x)) / (a - one(T))
+    else
+        return zero(T)
+    end
+end
+function _prox{T <: Number}(p::SCADPenalty{T}, x::T, λ::T)
+    a = p.a
+    abx = abs(x)
+    if abx < T(2) * λ
+        return soft_thresh(x, λ)
+    elseif abx <= λ * a
+        return (x - λ * sign(x) * a / (a - one(T))) / (one(T) - one(T) / (a - one(T)))
+    else
+        return x
+    end
 end

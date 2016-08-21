@@ -5,7 +5,8 @@ importall LearnBase
 export
     L1Penalty,
     L2Penalty,
-    ElasticNetPenalty
+    ElasticNetPenalty,
+    SCADPenalty
 
 typealias AA{T} AbstractArray{T}
 
