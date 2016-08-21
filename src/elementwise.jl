@@ -94,7 +94,7 @@ type L2Penalty{T <: Number} <: Penalty
     λ::T
 end
 L2Penalty(λ::Number = 0.1) = L2Penalty(λ)
-value{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * T(.5) * x * x # FIXME?
+value{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * T(.5) * x * x
 deriv{T<:Number}(p::L2Penalty{T}, x::T) = p.λ * x
 _prox{T<:Number}(p::L2Penalty{T}, x::T, λ::T) = x / (one(T) + λ)
 
@@ -106,7 +106,7 @@ type ElasticNetPenalty{T <: Number} <: Penalty
 end
 ElasticNetPenalty(λ::Number = 0.1, α::Number = 0.5) = ElasticNetPenalty(λ, α)
 function value{T<:Number}(p::ElasticNetPenalty{T}, x::T)
-    p.λ * (p.α * abs(x) + (one(T) - p.α) * T(.5) * x * x) # FIXME?
+    p.λ * (p.α * abs(x) + (one(T) - p.α) * T(.5) * x * x)
 end
 function deriv{T<:Number}(p::ElasticNetPenalty{T}, x::T)
     p.λ * (p.α * sign(x) + (one(T) - p.α) * x)
