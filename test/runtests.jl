@@ -57,6 +57,17 @@ end
     @test prox(p, β[1]) ≈ β[1] / (1.0 + 0.1)
 end
 
+@testset "ElasticNetPenalty" begin
+    p = ElasticNetPenalty(.1, .7)
+    β = randn(10)
+    storage = zeros(10)
+    @test value(p, β) ≈ .1 * (.7 * sumabs(β) + .3 * .5 * sumabs2(β))
+    @test deriv(p, β[1]) ≈ .1 * .7 * sign(β[1]) + .1 * .3 * β[1]
+    grad!(storage, p, β)
+    @test storage ≈ .1 * .7 * sign.(β) + .1 * .3 * β
+    @test prox(p, β[1]) ≈ Penalties.soft_thresh(β[1], .07) / 1.03
+end
+
 @testset "Abstract methods" begin
     p = L1Penalty(.1)
     β = randn(10)

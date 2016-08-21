@@ -123,7 +123,8 @@ function deriv{T<:Number}(p::ElasticNetPenalty{T}, x::T)
     p.λ * (p.α * sign(x) + (one(T) - p.α) * x)
 end
 function _prox{T<:Number}(p::ElasticNetPenalty{T}, x::T, λ::T)
-    soft_thresh(x / (one(T) + (one(T) - p.α) * λ), p.α * λ)
+    αλ = p.α * λ
+    soft_thresh(x, αλ) / (one(T) + λ - αλ)
 end
 
 
