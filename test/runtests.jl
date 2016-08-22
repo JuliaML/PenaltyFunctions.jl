@@ -3,7 +3,8 @@ using LearnBase, Penalties
 using Base.Test
 
 @testset "Sanity Check" begin
-    for p in [L1Penalty(.1), L2Penalty(.1), ElasticNetPenalty(.1, .5), SCADPenalty(.1, 3.7)]
+    for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1), 
+              ElasticNetPenalty(.1, .5), SCADPenalty(.1, 3.7)]
         β = randn(5)
         w = rand(5)
         storage = zeros(5)

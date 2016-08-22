@@ -78,6 +78,15 @@ prox(p::Penalty, x::Number) = _prox(p, x, p.λ)
 prox{T<:Number}(p::Penalty, x::T, ρ::T) = _prox(p, x, p.λ * ρ)
 
 
+#-------------------------------------------------------------------------# NoPenalty
+"f(x) = 0"
+type NoPenalty <: Penalty end
+value(p::NoPenalty, x::Number) = zero(x)
+deriv(p::NoPenalty, x::Number) = zero(x)
+prox{T<:Number}(p::NoPenalty, x::T) = x
+prox{T<:Number}(p::NoPenalty, x::T, ρ::T) = x
+
+
 #-------------------------------------------------------------------------# L1Penalty
 "L1-Norm Penalty: f(x) = vecnorm(x, 1)"
 type L1Penalty{T <: Number} <: Penalty

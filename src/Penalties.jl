@@ -3,6 +3,7 @@ module Penalties
 importall LearnBase
 
 export
+    NoPenalty,
     L1Penalty,
     L2Penalty,
     ElasticNetPenalty,
