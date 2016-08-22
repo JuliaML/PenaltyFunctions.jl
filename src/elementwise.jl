@@ -157,9 +157,9 @@ function value{T <: Number}(p::SCADPenalty{T}, x::T)
     if abx < λ
         return λ * abx
     elseif abx <= λ * a
-        return -T(0.5) * (abx ^ 2 - T(2) * a * λ * abx + λ ^ 2) / (a - 1)
+        return -T(0.5) * (abx ^ 2 - T(2) * a * λ * abx + λ ^ 2) / (a - one(T))
     else
-        return T(0.5) * (a + 1) * λ * λ
+        return T(0.5) * (a + one(T)) * λ * λ
     end
 end
 function deriv{T <: Number}(p::SCADPenalty{T}, x::T)
