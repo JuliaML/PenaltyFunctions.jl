@@ -1,7 +1,6 @@
 # Penalties
 
-[![Build Status](https://travis-ci.org/joshday/Penalties.jl.svg?branch=master)](https://travis-ci.org/joshday/Penalties.jl)
-[![codecov.io](http://codecov.io/github/joshday/Penalties.jl/coverage.svg?branch=master)](http://codecov.io/github/joshday/Penalties.jl?branch=master)
+[![Build Status](https://travis-ci.org/JuliaML/Penalties.jl.svg?branch=master)](https://travis-ci.org/JuliaML/Penalties.jl)
 
 
 # Warning
