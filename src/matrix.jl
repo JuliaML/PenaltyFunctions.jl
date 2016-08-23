@@ -14,14 +14,14 @@ function value{T}(p::NuclearNormPenalty{T}, A::AbstractMatrix{T})
     end
 end
 
-function prox!{T}(A::AbstractMatrix{T},r::NuclearNormPenalty{T},ρ::T)
+function prox!{T}(A::AbstractMatrix{T},r::NuclearNormPenalty{T},s::T)
     svdecomp = svdfact!(A)
-    soft_thresh!(svdecomp.S,ρ*r.λ)
+    soft_thresh!(svdecomp.S,s*r.λ)
     copy!(A,full(svdecomp))
 end
 
-function prox{T}(A::AbstractMatrix{T},r::NuclearNormPenalty{T},ρ::T)
+function prox{T}(A::AbstractMatrix{T},r::NuclearNormPenalty{T},s::T)
     svdecomp = svdfact(A)
-    soft_thresh!(svdecomp.S,ρ*r.λ)
+    soft_thresh!(svdecomp.S,s*r.λ)
     full(svdecomp)
 end

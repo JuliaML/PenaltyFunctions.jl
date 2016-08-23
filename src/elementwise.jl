@@ -8,12 +8,12 @@ function value{T <: Number}(p::Penalty, x::AA{T})
     end
     result
 end
-value{T <: Number}(p::Penalty, x::AA{T}, ρ::T) = value(p, x) * ρ
-function value{T <: Number}(p::Penalty, x::AA{T}, ρ::AA{T})
-    @assert size(x) == size(ρ)
+value{T <: Number}(p::Penalty, x::AA{T}, s::T) = value(p, x) * s
+function value{T <: Number}(p::Penalty, x::AA{T}, s::AA{T})
+    @assert size(x) == size(s)
     result = zero(T)
     for i in eachindex(x)
-        @inbounds result += value(p, x[i], ρ[i])
+        @inbounds result += value(p, x[i], s[i])
     end
     result
 end
@@ -26,17 +26,17 @@ function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T})
     end
     dest
 end
-function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, ρ::T)
+function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, s::T)
     @assert size(dest) == size(x)
     for i in eachindex(dest)
-        @inbounds dest[i] = deriv(p, x[i], ρ)
+        @inbounds dest[i] = deriv(p, x[i], s)
     end
     dest
 end
-function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, ρ::AA{T})
-    @assert size(dest) == size(x) == size(ρ)
+function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, s::AA{T})
+    @assert size(dest) == size(x) == size(s)
     for i in eachindex(dest)
-        @inbounds dest[i] = deriv(p, x[i], ρ[i])
+        @inbounds dest[i] = deriv(p, x[i], s[i])
     end
     dest
 end
@@ -48,16 +48,16 @@ function prox!{T<:Number}(p::Penalty, x::AA{T})
     end
     x
 end
-function prox!{T<:Number}(p::Penalty, x::AA{T}, ρ::T)
+function prox!{T<:Number}(p::Penalty, x::AA{T}, s::T)
     for i in eachindex(x)
-        @inbounds x[i] = prox(p, x[i], ρ)
+        @inbounds x[i] = prox(p, x[i], s)
     end
     x
 end
-function prox!{T<:Number}(p::Penalty, x::AA{T}, ρ::AA{T})
-    @assert size(x) == size(ρ)
+function prox!{T<:Number}(p::Penalty, x::AA{T}, s::AA{T})
+    @assert size(x) == size(s)
     for i in eachindex(x)
-        @inbounds x[i] = prox(p, x[i], ρ[i])
+        @inbounds x[i] = prox(p, x[i], s[i])
     end
     x
 end
@@ -72,10 +72,10 @@ function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
 end
 
 
-value{T<:Number}(p::Penalty, x::T, ρ::T) = ρ * value(p, x)
-deriv{T<:Number}(p::Penalty, x::T, ρ::T) = ρ * deriv(p, x)
+value{T<:Number}(p::Penalty, x::T, s::T) = s * value(p, x)
+deriv{T<:Number}(p::Penalty, x::T, s::T) = s * deriv(p, x)
 prox(p::Penalty, x::Number) = _prox(p, x, p.λ)
-prox{T<:Number}(p::Penalty, x::T, ρ::T) = _prox(p, x, p.λ * ρ)
+prox{T<:Number}(p::Penalty, x::T, s::T) = _prox(p, x, p.λ * s)
 
 
 #-------------------------------------------------------------------------# NoPenalty
@@ -84,7 +84,7 @@ type NoPenalty <: Penalty end
 value(p::NoPenalty, x::Number) = zero(x)
 deriv(p::NoPenalty, x::Number) = zero(x)
 prox{T<:Number}(p::NoPenalty, x::T) = x
-prox{T<:Number}(p::NoPenalty, x::T, ρ::T) = x
+prox{T<:Number}(p::NoPenalty, x::T, s::T) = x
 
 
 #-------------------------------------------------------------------------# L1Penalty
