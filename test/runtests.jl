@@ -50,7 +50,7 @@ end
     @test value(p, β) ≈ .1 * sumabs(β)
     @test deriv(p, β[1]) ≈ .1 * sign(β[1])
     grad!(storage, p, β)
-    @test storage ≈ .1 * sign.(β)
+    @test storage ≈ .1 * map(sign, β)
     @test prox(p, β[1]) ≈ sign(β[1]) * max(0., abs(β[1]) - .1)
 end
 
@@ -72,7 +72,7 @@ end
     @test value(p, β) ≈ .1 * (.7 * sumabs(β) + .3 * .5 * sumabs2(β))
     @test deriv(p, β[1]) ≈ .1 * .7 * sign(β[1]) + .1 * .3 * β[1]
     grad!(storage, p, β)
-    @test storage ≈ .1 * .7 * sign.(β) + .1 * .3 * β
+    @test storage ≈ .1 * .7 * map(sign, β) + .1 * .3 * β
     @test prox(p, β[1]) ≈ Penalties.soft_thresh(β[1], .07) / 1.03
 end
 
@@ -92,7 +92,7 @@ end
     @test storage ≈ p.λ * sign(β) .* factor
 
     prox!(p, β)
-    @test β ≈ Penalties.soft_thresh.(βcopy, p.λ)
+    @test β ≈ map(x->Penalties.soft_thresh(x, p.λ), βcopy)
     β = deepcopy(βcopy)
     prox!(p, β, factor)
     @test β ≈ [Penalties.soft_thresh(βcopy[i], p.λ * factor[i]) for i in 1:10]
