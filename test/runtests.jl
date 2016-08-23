@@ -1,13 +1,5 @@
 module Tests
-using LearnBase, Penalties
-
-# necessary to support 0.4 and 0.5
-if VERSION >= v"0.5.0-dev+7720"
-    using Base.Test
-else
-    using BaseTestNext
-    const Test = BaseTestNext
-end
+using LearnBase, Penalties, Base.Test
 
 @testset "Sanity Check" begin
     for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1),
