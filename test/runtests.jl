@@ -1,9 +1,16 @@
 module Tests
 using LearnBase, Penalties
-using Base.Test
+
+# necessary to support 0.4 and 0.5
+if VERSION >= v"0.5.0-dev+7720"
+    using Base.Test
+else
+    using BaseTestNext
+    const Test = BaseTestNext
+end
 
 @testset "Sanity Check" begin
-    for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1), 
+    for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1),
               ElasticNetPenalty(.1, .5), SCADPenalty(.1, 3.7)]
         β = randn(5)
         w = rand(5)
