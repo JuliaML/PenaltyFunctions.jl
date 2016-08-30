@@ -1,15 +1,15 @@
 # Penalties that can be evaluated elementwise
 
 #------------------------------------------------------------------# abstract methods
-function value{T <: Number}(p::Penalty, x::AA{T})
+function value{T <: Number}(p::ElementwisePenalty, x::AA{T})
     result = zero(T)
     for xi in x
         result += value(p, xi)
     end
     result
 end
-value{T <: Number}(p::Penalty, x::AA{T}, s::T) = value(p, x) * s
-function value{T <: Number}(p::Penalty, x::AA{T}, s::AA{T})
+value{T <: Number}(p::ElementwisePenalty, x::AA{T}, s::T) = value(p, x) * s
+function value{T <: Number}(p::ElementwisePenalty, x::AA{T}, s::AA{T})
     @assert size(x) == size(s)
     result = zero(T)
     for i in eachindex(x)
@@ -19,21 +19,21 @@ function value{T <: Number}(p::Penalty, x::AA{T}, s::AA{T})
 end
 
 
-function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T})
+function grad!{T<:Number}(dest::AA{T}, p::ElementwisePenalty, x::AA{T})
     @assert size(dest) == size(x)
     for i in eachindex(dest)
         @inbounds dest[i] = deriv(p, x[i])
     end
     dest
 end
-function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, s::T)
+function grad!{T<:Number}(dest::AA{T}, p::ElementwisePenalty, x::AA{T}, s::T)
     @assert size(dest) == size(x)
     for i in eachindex(dest)
         @inbounds dest[i] = deriv(p, x[i], s)
     end
     dest
 end
-function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, s::AA{T})
+function grad!{T<:Number}(dest::AA{T}, p::ElementwisePenalty, x::AA{T}, s::AA{T})
     @assert size(dest) == size(x) == size(s)
     for i in eachindex(dest)
         @inbounds dest[i] = deriv(p, x[i], s[i])
@@ -42,19 +42,19 @@ function grad!{T<:Number}(dest::AA{T}, p::Penalty, x::AA{T}, s::AA{T})
 end
 
 
-function prox!{T<:Number}(p::Penalty, x::AA{T})
+function prox!{T<:Number}(p::ElementwisePenalty, x::AA{T})
     for i in eachindex(x)
         @inbounds x[i] = prox(p, x[i])
     end
     x
 end
-function prox!{T<:Number}(p::Penalty, x::AA{T}, s::T)
+function prox!{T<:Number}(p::ElementwisePenalty, x::AA{T}, s::T)
     for i in eachindex(x)
         @inbounds x[i] = prox(p, x[i], s)
     end
     x
 end
-function prox!{T<:Number}(p::Penalty, x::AA{T}, s::AA{T})
+function prox!{T<:Number}(p::ElementwisePenalty, x::AA{T}, s::AA{T})
     @assert size(x) == size(s)
     for i in eachindex(x)
         @inbounds x[i] = prox(p, x[i], s[i])
@@ -72,15 +72,15 @@ function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
 end
 
 
-value{T<:Number}(p::Penalty, x::T, s::T) = s * value(p, x)
-deriv{T<:Number}(p::Penalty, x::T, s::T) = s * deriv(p, x)
-prox(p::Penalty, x::Number) = _prox(p, x, p.λ)
-prox{T<:Number}(p::Penalty, x::T, s::T) = _prox(p, x, p.λ * s)
+value{T<:Number}(p::ElementwisePenalty, x::T, s::T) = s * value(p, x)
+deriv{T<:Number}(p::ElementwisePenalty, x::T, s::T) = s * deriv(p, x)
+prox(p::ElementwisePenalty, x::Number) = _prox(p, x, p.λ)
+prox{T<:Number}(p::ElementwisePenalty, x::T, s::T) = _prox(p, x, p.λ * s)
 
 
 #-------------------------------------------------------------------------# NoPenalty
 "f(x) = 0"
-type NoPenalty <: Penalty end
+type NoPenalty <: ElementwisePenalty end
 value(p::NoPenalty, x::Number) = zero(x)
 deriv(p::NoPenalty, x::Number) = zero(x)
 prox{T<:Number}(p::NoPenalty, x::T) = x
@@ -89,7 +89,7 @@ prox{T<:Number}(p::NoPenalty, x::T, s::T) = x
 
 #-------------------------------------------------------------------------# L1Penalty
 "L1-Norm Penalty: f(x) = vecnorm(x, 1)"
-type L1Penalty{T <: Number} <: Penalty
+type L1Penalty{T <: Number} <: ElementwisePenalty
     λ::T
 end
 function L1Penalty(λ::Number = 0.1)
@@ -103,7 +103,7 @@ _prox{T<:Number}(p::L1Penalty{T}, x::T, λ::T) = soft_thresh(x, λ)
 
 #-------------------------------------------------------------------------# L2Penalty
 "Squared L2-Norm Penalty: f(x) = vecnorm(x, 2) ^ 2"
-type L2Penalty{T <: Number} <: Penalty
+type L2Penalty{T <: Number} <: ElementwisePenalty
     λ::T
 end
 function L2Penalty(λ::Number = 0.1)
@@ -117,7 +117,7 @@ _prox{T<:Number}(p::L2Penalty{T}, x::T, λ::T) = x / (one(T) + λ)
 #-----------------------------------------------------------------# ElasticNetPenalty
 # λ₁ = λ * α, λ₂ = λ * (1 - α)
 "Weighted average of L1Penalty and L2Penalty"
-type ElasticNetPenalty{T <: Number} <: Penalty
+type ElasticNetPenalty{T <: Number} <: ElementwisePenalty
     λ::T
     α::T
 end
@@ -142,7 +142,7 @@ end
 # http://www.pstat.ucsb.edu/student%20seminar%20doc/SCAD%20Jian%20Shi.pdf
 # For prox: http://arxiv.org/pdf/1412.2999.pdf
 # Needs tests
-type SCADPenalty{T <: Number} <: Penalty
+type SCADPenalty{T <: Number} <: ElementwisePenalty
     λ::T
     a::T
 end

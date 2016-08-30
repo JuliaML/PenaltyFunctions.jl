@@ -3,14 +3,21 @@ module Penalties
 importall LearnBase
 
 export
-    NoPenalty,
-    L1Penalty,
-    L2Penalty,
-    ElasticNetPenalty,
-    SCADPenalty
+    Penalty,
+        ElementwisePenalty,
+            NoPenalty,
+            L1Penalty,
+            L2Penalty,
+            ElasticNetPenalty,
+            SCADPenalty,
+        ArrayPenalty,
+            NuclearNormPenalty
 
-typealias AA{T} AbstractArray{T}
+typealias AA{T, N} AbstractArray{T, N}
+
+abstract ElementwisePenalty <: Penalty
+abstract ArrayPenalty <: Penalty
 
 include("elementwise.jl")
-include("matrix.jl")
+include("array.jl")
 end
