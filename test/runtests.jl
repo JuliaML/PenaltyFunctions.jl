@@ -5,12 +5,12 @@ using LearnBase, Penalties, Base.Test
     @testset "Sanity Check" begin
     p = NuclearNormPenalty(.1)
     A = randn(5, 5)
-    storage = zeros(A)
-
 
     value(p, A)
     prox(p, A)
     prox(p, A, .5)
+    prox!(p, A)
+    prox!(p, A, .5)
     end
 end
 
