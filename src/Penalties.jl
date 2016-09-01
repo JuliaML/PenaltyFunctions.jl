@@ -9,6 +9,7 @@ export
             L1Penalty,
             L2Penalty,
             ElasticNetPenalty,
+            HardThresholdPenalty,
             SCADPenalty,
         ArrayPenalty,
             NuclearNormPenalty

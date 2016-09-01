@@ -17,7 +17,8 @@ end
 @testset "ElementwisePenalty" begin
     @testset "Sanity Check" begin
         for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1),
-                  ElasticNetPenalty(.1, .5), SCADPenalty(.1, 3.7)]
+                  ElasticNetPenalty(.1, .5), SCADPenalty(.1, 3.7),
+                  HardThresholdPenalty(.1)]
             β = randn(5)
             w = rand(5)
             storage = zeros(5)
@@ -79,6 +80,16 @@ end
         grad!(storage, p, β)
         @test storage ≈ .1 * .7 * map(sign, β) + .1 * .3 * β
         @test prox(p, β[1]) ≈ Penalties.soft_thresh(β[1], .07) / 1.03
+    end
+
+    @testset "HardThresholdPenalty" begin
+        p = HardThresholdPenalty(.1)
+        β = randn(10)
+        β[1] = 1.0
+        β[2] = .001
+        storage = zeros(10)
+        @test deriv(p, β[1]) ≈ -.9
+        @test deriv(p, β[2]) ≈ 0.0
     end
 
     @testset "Abstract methods" begin

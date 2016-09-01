@@ -150,14 +150,16 @@ end
 function value{T <: Number}(p::HardThresholdPenalty{T}, x::T)
     absx = abs(x)
     λ = p.λ
-    λ * λ - (absx - λ) ^ 2 * T(absx < λ)
+    T(.5) * λ * λ - (absx - λ) ^ 2 * T(absx < λ)
 end
 function deriv{T <: Number}(p::HardThresholdPenalty{T}, x::T)
     absx = abs(x)
-    -T(2) * soft_thresh(x, p.λ) * T(absx < λ)
+    λ = p.λ
+    (λ - absx) * T(absx > λ)
 end
+
 function _prox{T <: Number}(p::HardThresholdPenalty{T}, x::T, λ::T)
-    if x > λ
+    if x > p.λ
         return x
     else
         return zero(T)
