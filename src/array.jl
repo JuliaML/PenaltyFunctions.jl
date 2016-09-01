@@ -1,4 +1,8 @@
 # Penalties that evaluate on the entire array only
+# TODO:
+# - GroupLassoPenalty
+# - GeneralizedL1Penalty?
+# - FusedL1Penalty
 
 #------------------------------------------------------------------# abstract methods
 value{T <: Number}(p::ArrayPenalty, A::AA{T}, s::T) = s * value(p, A)

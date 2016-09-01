@@ -8,6 +8,15 @@ This package is in development and things may break/change
 
 # Usage
 
+## Element-wise Penalties
+Penalties that apply to the parameter element-wise.
+
+- `NoPenalty()`
+- `L1Penalty(λ)`
+- `L2Penalty(λ)`
+- `ElasticNetPenalty(λ, α)`
+- `SCADPenalty(λ, a)`
+
 ```julia
 using Penalties
 
@@ -40,4 +49,21 @@ prox!(p, β, w[1])
 value(p, β, w)
 grad!(storage, p, β, w)
 prox!(p, β, w)
+```
+
+
+## Array Penalties
+Penalties that need to be evaluated on the entire parameter
+
+- `NuclearNormPenalty`
+
+```julia
+Θ = randn(10, 5)
+s = rand()
+
+p = NuclearNormPenalty(.1)
+
+value(p, Θ)
+prox(p, Θ)
+prox!(p, Θ)
 ```
