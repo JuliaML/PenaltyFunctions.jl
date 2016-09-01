@@ -138,6 +138,33 @@ function _prox{T<:Number}(p::ElasticNetPenalty{T}, x::T, λ::T)
 end
 
 
+#--------------------------------------------------------------# HardThresholdPenalty
+# Needs tests
+type HardThresholdPenalty{T <: Number} <: ElementwisePenalty
+    λ::T
+end
+function HardThresholdPenalty(λ::Number = 0.1)
+    @assert λ >= zero(λ)
+    HardThresholdPenalty(λ)
+end
+function value{T <: Number}(p::HardThresholdPenalty{T}, x::T)
+    absx = abs(x)
+    λ = p.λ
+    λ * λ - (absx - λ) ^ 2 * T(absx < λ)
+end
+function deriv{T <: Number}(p::HardThresholdPenalty{T}, x::T)
+    absx = abs(x)
+    -T(2) * soft_thresh(x, p.λ) * T(absx < λ)
+end
+function _prox{T <: Number}(p::HardThresholdPenalty{T}, x::T, λ::T)
+    if x > λ
+        return x
+    else
+        return zero(T)
+    end
+end
+
+
 #-----------------------------------------------------------------------# SCADPenalty
 # http://www.pstat.ucsb.edu/student%20seminar%20doc/SCAD%20Jian%20Shi.pdf
 # For prox: http://arxiv.org/pdf/1412.2999.pdf
