@@ -1,5 +1,8 @@
 # Penalties that evaluate on the entire array only
 
+#------------------------------------------------------------------# abstract methods
+value{T <: Number}(p::ArrayPenalty, A::AA{T}, s::T) = s * value(p, A)
+
 prox!{T <: Number}(p::ArrayPenalty, A::AA{T}) = _prox!(p, A, p.λ)
 prox!{T <: Number}(p::ArrayPenalty, A::AA{T}, s::T) = _prox!(p, A, s * p.λ)
 prox{T <: Number}(p::ArrayPenalty, A::AA{T}) = prox!(p, deepcopy(A))
@@ -26,9 +29,3 @@ function _prox!{T <: Number}(p::NuclearNormPenalty{T}, A::AA{T, 2}, s::T)
     soft_thresh!(svdecomp.S, s)
     copy!(A, full(svdecomp))
 end
-
-
-
-#--------------------------------------------------------------# GeneralizedL1Penalty
-# http://www.stat.cmu.edu/~ryantibs/papers/genlasso.pdf
-# TODO
