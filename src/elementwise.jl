@@ -63,15 +63,6 @@ function prox!{T<:Number}(p::ElementwisePenalty, x::AA{T}, s::AA{T})
 end
 
 
-soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(T), abs(x) - λ)
-function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
-    for i in eachindex(x)
-        @inbounds x[i] = soft_thresh(x[i], λ)
-    end
-    x
-end
-
-
 value{T<:Number}(p::ElementwisePenalty, x::T, s::T) = s * value(p, x)
 deriv{T<:Number}(p::ElementwisePenalty, x::T, s::T) = s * deriv(p, x)
 prox(p::ElementwisePenalty, x::Number) = _prox(p, x, p.λ)
@@ -79,7 +70,7 @@ prox{T<:Number}(p::ElementwisePenalty, x::T, s::T) = _prox(p, x, p.λ * s)
 
 
 #-------------------------------------------------------------------------# NoPenalty
-"f(x) = 0"
+"No Penalty: f(x) = 0"
 type NoPenalty <: ElementwisePenalty end
 value(p::NoPenalty, x::Number) = zero(x)
 deriv(p::NoPenalty, x::Number) = zero(x)

@@ -3,14 +3,36 @@ using LearnBase, Penalties, Base.Test
 
 @testset "ArrayPenalty" begin
     @testset "Sanity Check" begin
-    p = NuclearNormPenalty(.1)
-    A = randn(5, 5)
+        p = NuclearNormPenalty(.1)
+        A = randn(5, 5)
+        value(p, A)
+        prox(p, A)
+        prox(p, A, .5)
+        prox!(p, A)
+        prox!(p, A, .5)
 
-    value(p, A)
-    prox(p, A)
-    prox(p, A, .5)
-    prox!(p, A)
-    prox!(p, A, .5)
+        p = GroupLassoPenalty(.1)
+        A = randn(5)
+        value(p, A)
+        prox(p, A)
+        prox(p, A, .5)
+        prox!(p, A)
+        prox!(p, A, .5)
+    end
+
+    @testset "NuclearNormPenalty" begin
+        p = NuclearNormPenalty(.1)
+        β = randn(10, 5)
+        βcopy = deepcopy(β)
+        @test value(p, β) ≈ trace(sqrtm(β'β))
+    end
+
+    @testset "GroupLassoPenalty" begin
+        p = GroupLassoPenalty(.1)
+        β = randn(10)
+        βcopy = deepcopy(β)
+        @test value(p, β) ≈ vecnorm(β)
+
     end
 end
 
@@ -18,7 +40,6 @@ end
     @testset "Sanity Check" begin
         for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1),
                   ElasticNetPenalty(.1, .5), SCADPenalty(.1, 3.7)]
-                #   HardThresholdPenalty(.1)]
             β = randn(5)
             w = rand(5)
             storage = zeros(5)
@@ -81,16 +102,6 @@ end
         @test storage ≈ .1 * .7 * map(sign, β) + .1 * .3 * β
         @test prox(p, β[1]) ≈ Penalties.soft_thresh(β[1], .07) / 1.03
     end
-
-    # @testset "HardThresholdPenalty" begin
-    #     p = HardThresholdPenalty(.1)
-    #     β = randn(10)
-    #     β[1] = 1.0
-    #     β[2] = .001
-    #     storage = zeros(10)
-    #     @test deriv(p, β[1]) ≈ -.9
-    #     @test deriv(p, β[2]) ≈ 0.0
-    # end
 
     @testset "Abstract methods" begin
         p = L1Penalty(.1)

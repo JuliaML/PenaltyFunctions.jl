@@ -59,7 +59,6 @@ Penalties that need to be evaluated on the entire parameter
 
 ```julia
 Θ = randn(10, 5)
-s = rand()
 
 p = NuclearNormPenalty(.1)
 
