@@ -34,6 +34,7 @@ end
 
 
 #-----------------------------------------------------------------# GroupLassoPenalty
+"Group Lasso Penalty.  Able to set the entire vector (group) to 0."
 type GroupLassoPenalty{T <: Number} <: ArrayPenalty
     λ::T
 end
@@ -42,9 +43,14 @@ GroupLassoPenalty(λ::Number = 0.1) = GroupLassoPenalty(λ)
 value{T <: Number}(p::GroupLassoPenalty{T}, A::AA{T, 1}) = vecnorm(A)
 
 function _prox!{T <: Number}(p::GroupLassoPenalty{T}, A::AA{T, 1}, s::T)
-    scaling = s / vecnorm(A)
-    for i in eachindex(A)
-        @inbounds A[i] = soft_thresh(A[i], scaling * A[i])
+    denom = vecnorm(A)
+    if denom <= s
+        fill!(A, zero(T))
+    else
+        scaling = p.λ / denom
+        for i in eachindex(A)
+            @inbounds A[i] = A[i] - scaling * A[i]
+        end
     end
     A
 end

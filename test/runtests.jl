@@ -29,10 +29,14 @@ using LearnBase, Penalties, Base.Test
 
     @testset "GroupLassoPenalty" begin
         p = GroupLassoPenalty(.1)
-        β = randn(10)
+        β = ones(10)
         βcopy = deepcopy(β)
         @test value(p, β) ≈ vecnorm(β)
+        @test prox(p, β) ≈ βcopy - p.λ / vecnorm(βcopy)
 
+        β = ones(10) * .001
+        βcopy = deepcopy(β)
+        @test prox(p, β) == zeros(10)
     end
 end
 
