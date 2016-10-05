@@ -68,6 +68,8 @@ deriv{T<:Number}(p::ElementwisePenalty, x::T, s::T) = s * deriv(p, x)
 prox(p::ElementwisePenalty, x::Number) = _prox(p, x, p.λ)
 prox{T<:Number}(p::ElementwisePenalty, x::T, s::T) = _prox(p, x, p.λ * s)
 
+prox{T<:Number}(p::ElementwisePenalty, x::AA{T}) = prox!(p, copy(x))
+prox{T<:Number}(p::ElementwisePenalty, x::AA{T}, s) = prox!(p, copy(x), s)
 
 #-------------------------------------------------------------------------# NoPenalty
 "No Penalty: f(x) = 0"

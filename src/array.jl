@@ -54,3 +54,22 @@ function _prox!{T <: Number}(p::GroupLassoPenalty{T}, A::AA{T, 1}, s::T)
     end
     A
 end
+
+#-----------------------------------------------------------------# MahalanobisPenalty
+"""
+    MahalanobisPenalty(C)
+
+Supports a Mahalanobis distance penalty (`xᵀCᵀCx` for a vector `x`).
+"""
+type MahalanobisPenalty{T <: Number} <: ArrayPenalty
+    λ::T
+    C::AA{T,2}
+end
+MahalanobisPenalty{T}(C::AA{T}) = MahalanobisPenalty(one(T),C)
+
+value{T <: Number}(p::MahalanobisPenalty{T}, x) = p.λ*sumabs2(p.C*x)
+
+function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, s::T)
+    y = (p.C'p.C + (one(T)/s)*I) \ (A./s)
+    copy!(A,y)
+end
