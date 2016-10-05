@@ -67,7 +67,7 @@ type MahalanobisPenalty{T <: Number} <: ArrayPenalty
 end
 MahalanobisPenalty{T}(C::AA{T}) = MahalanobisPenalty(one(T),C)
 
-value{T <: Number}(p::MahalanobisPenalty{T}, x) = p.λ*sumabs2(p.C*x)
+value{T <: Number}(p::MahalanobisPenalty{T}, x) = T(0.5)*p.λ*sumabs2(p.C*x)
 
 function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, s::T)
     y = (p.C'p.C + (one(T)/s)*I) \ (A./s)
