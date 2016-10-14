@@ -40,6 +40,17 @@ using LearnBase, Penalties, Base.Test
     end
 end
 
+@testset "addgrad!" begin
+    x = rand(5)
+    ∇ = copy(x)
+    β = rand(5)
+    p = L1Penalty(1e-2)
+    addgrad!(∇, p, β)
+    storage = zeros(5)
+    grad!(storage, p, β)
+    @test ∇ ≈ x + storage
+end
+
 @testset "ElementwisePenalty" begin
     @testset "Sanity Check" begin
         for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1),

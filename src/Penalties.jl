@@ -31,6 +31,13 @@ function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
     x
 end
 
+function addgrad!{T<:Number}(∇::AbstractArray{T}, penalty::Penalty, θ::AbstractArray{T})
+    @inbounds for (i, θᵢ) in zip(eachindex(∇), θ)
+        ∇[i] += deriv(penalty, θᵢ)
+    end
+    ∇
+end
+
 include("elementwise.jl")
 include("array.jl")
 end
