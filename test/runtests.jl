@@ -49,6 +49,18 @@ end
     storage = zeros(5)
     grad!(storage, p, β)
     @test ∇ ≈ x + storage
+
+    ∇ = copy(x)
+    addgrad!(∇, p, β, .1)
+    storage = zeros(5)
+    grad!(storage, p, β, .1)
+    @test ∇ ≈ x + storage
+    
+    ∇ = copy(x)
+    addgrad!(∇, p, β, .1 * ones(5))
+    storage = zeros(5)
+    grad!(storage, p, β, .1 * ones(5))
+    @test ∇ ≈ x + storage
 end
 
 @testset "ElementwisePenalty" begin

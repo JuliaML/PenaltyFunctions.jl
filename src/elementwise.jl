@@ -41,6 +41,26 @@ function grad!{T<:Number}(dest::AA{T}, p::ElementwisePenalty, x::AA{T}, s::AA{T}
     dest
 end
 
+function addgrad!{T<:Number}(∇::AA{T}, penalty::ElementwisePenalty, θ::AA{T})
+    @inbounds for (i, θᵢ) in zip(eachindex(∇), θ)
+        ∇[i] += deriv(penalty, θᵢ)
+    end
+    ∇
+end
+function addgrad!{T<:Number}(∇::AA{T}, penalty::ElementwisePenalty, θ::AA{T}, s::T)
+    @inbounds for (i, θᵢ) in zip(eachindex(∇), θ)
+        ∇[i] += deriv(penalty, θᵢ, s)
+    end
+    ∇
+end
+function addgrad!{T<:Number}(∇::AA{T}, penalty::ElementwisePenalty, θ::AA{T}, s::AA{T})
+    @assert size(∇) == size(θ) == size(s)
+    @inbounds for i in eachindex(∇)
+        ∇[i] += deriv(penalty, θ[i], s[i])
+    end
+    ∇
+end
+
 
 function prox!{T<:Number}(p::ElementwisePenalty, x::AA{T})
     for i in eachindex(x)
