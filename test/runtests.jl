@@ -42,7 +42,7 @@ using LearnBase, Penalties, Base.Test
     @testset "MahalanobisPenalty" begin
         p = MahalanobisPenalty(eye(10))
         β = ones(10)
-        @test value(p, β) ≈ sum(β.^2)
+        @test value(p, β) ≈ 0.5*sum(β.^2)
         @test prox(p, β) ≈ prox(L2Penalty(1.0), β)
 
         # TODO: add more tests
