@@ -64,20 +64,21 @@ Supports a Mahalanobis distance penalty (`xᵀCᵀCx` for a vector `x`).
 type MahalanobisPenalty{T <: Number} <: ArrayPenalty
     λ::T
     C::AA{T,2}
-    s::T
+    CtC::AA{T,2}
+    sλ::T
     CtC_Isλ::Base.LinAlg.LU{T,Array{T,2}} # LU factorization of C'C + I/sλ
 end
-MahalanobisPenalty{T}(λ::T, C::AA{T,2}, s::T=one(T)) = MahalanobisPenalty(λ, C'C, s, lufact(C'C + I/(λ*s)))
-MahalanobisPenalty{T}(C::AA{T,2}, s::T=one(T)) = MahalanobisPenalty(one(T), C'C, s, lufact(C'C + I/s))
+MahalanobisPenalty{T}(λ::T, C::AA{T,2}, s::T=one(T)) = MahalanobisPenalty(λ, C, C'C, s*λ, lufact(C'C + I/(λ*s)))
+MahalanobisPenalty{T}(C::AA{T,2}, s::T=one(T)) = MahalanobisPenalty(one(T), C, C'C, s, lufact(C'C + I/s))
 
 value{T <: Number}(p::MahalanobisPenalty{T}, x) = T(0.5) * p.λ * sumabs2(p.C*x)
 
-function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, s::T)
-    if s != p.s
-        p.s = s
-        p.CtC_Isλ = lufact(p.C'p.C + I/(p.λ*s))
+function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, sλ::T)
+    if sλ != p.sλ
+        p.sλ = sλ
+        p.CtC_Isλ = lufact(p.CtC + I/sλ)
     end
 
-    scale!(A,1/s)
+    scale!(A,1/sλ)
     A_ldiv_B!(p.CtC_Isλ, A) # overwrites result in A
 end

@@ -44,8 +44,13 @@ using LearnBase, Penalties, Base.Test
         β = ones(10)
         @test value(p, β) ≈ 0.5*sum(β.^2)
         @test prox(p, β) ≈ prox(L2Penalty(1.0), β)
+        @test prox(p, β, 2.0) ≈ prox(L2Penalty(1.0), β, 2.0)
+        @test prox(p, β, 0.5) ≈ prox(L2Penalty(1.0), β, 0.5)
 
-        # TODO: add more tests
+        C = randn(10,10)
+        x = randn(10)
+        p2 = MahalanobisPenalty(C)
+        @test value(p2, x) ≈ 0.5*sum((C*x).^2)
     end
 end
 
