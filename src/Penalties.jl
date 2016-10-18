@@ -14,7 +14,8 @@ export
             SCADPenalty,
         ArrayPenalty,
             NuclearNormPenalty,
-            GroupLassoPenalty
+            GroupLassoPenalty,
+            MahalanobisPenalty
 
 typealias AA{T, N} AbstractArray{T, N}
 
