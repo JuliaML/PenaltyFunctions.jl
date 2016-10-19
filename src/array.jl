@@ -66,12 +66,16 @@ type MahalanobisPenalty{T <: Number} <: ArrayPenalty
     C::AA{T,2}
     CtC::AA{T,2}
     sλ::T
-    CtC_Isλ::Base.LinAlg.LU{T,Array{T,2}} # LU factorization of C'C + I/sλ
+    CtC_Isλ::Base.LinAlg.LU{T, Array{T,2}} # LU factorization of C'C + I/sλ
 end
-MahalanobisPenalty{T}(λ::T, C::AA{T,2}, s::T=one(T)) = MahalanobisPenalty(λ, C, C'C, s*λ, lufact(C'C + I/(λ*s)))
-MahalanobisPenalty{T}(C::AA{T,2}, s::T=one(T)) = MahalanobisPenalty(one(T), C, C'C, s, lufact(C'C + I/s))
+function MahalanobisPenalty{T}(λ::T, C::AA{T,2}, s::T=one(T))
+    MahalanobisPenalty(λ, C, C'C, s*λ, lufact(C'C + I/(λ*s)))
+end
+function MahalanobisPenalty{T}(C::AA{T,2}, s::T=one(T))
+    MahalanobisPenalty(one(T), C, C'C, s, lufact(C'C + I/s))
+end
 
-value{T <: Number}(p::MahalanobisPenalty{T}, x) = T(0.5) * p.λ * sumabs2(p.C*x)
+value{T <: Number}(p::MahalanobisPenalty{T}, x) = T(0.5) * p.λ * sumabs2(p.C * x)
 
 function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, sλ::T)
     if sλ != p.sλ
@@ -79,6 +83,6 @@ function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, sλ::T)
         p.CtC_Isλ = lufact(p.CtC + I/sλ)
     end
 
-    scale!(A,1/sλ)
+    scale!(A, 1 / sλ)
     A_ldiv_B!(p.CtC_Isλ, A) # overwrites result in A
 end
