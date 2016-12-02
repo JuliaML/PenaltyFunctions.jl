@@ -1,5 +1,5 @@
 module Tests
-using LearnBase, Penalties, Base.Test
+using LearnBase, PenaltyFunctions, Base.Test
 
 @testset "ArrayPenalty" begin
     @testset "Sanity Check" begin
@@ -141,7 +141,7 @@ end
         @test deriv(p, β[1]) ≈ .1 * .7 * sign(β[1]) + .1 * .3 * β[1]
         grad!(storage, p, β)
         @test storage ≈ .1 * .7 * map(sign, β) + .1 * .3 * β
-        @test prox(p, β[1]) ≈ Penalties.soft_thresh(β[1], .07) / 1.03
+        @test prox(p, β[1]) ≈ PenaltyFunctions.soft_thresh(β[1], .07) / 1.03
     end
 
     @testset "Abstract methods" begin
@@ -160,10 +160,10 @@ end
         @test storage ≈ p.λ * sign(β) .* factor
 
         prox!(p, β)
-        @test β ≈ map(x->Penalties.soft_thresh(x, p.λ), βcopy)
+        @test β ≈ map(x->PenaltyFunctions.soft_thresh(x, p.λ), βcopy)
         β = deepcopy(βcopy)
         prox!(p, β, factor)
-        @test β ≈ [Penalties.soft_thresh(βcopy[i], p.λ * factor[i]) for i in 1:10]
+        @test β ≈ [PenaltyFunctions.soft_thresh(βcopy[i], p.λ * factor[i]) for i in 1:10]
     end
 end
 

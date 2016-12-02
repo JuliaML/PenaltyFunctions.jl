@@ -1,6 +1,6 @@
 __precompile__(true)
 
-module Penalties
+module PenaltyFunctions
 
 importall LearnBase
 

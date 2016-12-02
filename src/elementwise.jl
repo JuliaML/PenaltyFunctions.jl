@@ -1,4 +1,4 @@
-# Penalties that can be evaluated elementwise
+# PenaltyFunctions that can be evaluated elementwise
 
 #------------------------------------------------------------------# abstract methods
 function value{T <: Number}(p::ElementwisePenalty, θ::AA{T})

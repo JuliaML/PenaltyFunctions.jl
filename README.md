@@ -1,6 +1,6 @@
-# Penalties
+# PenaltyFunctions
 
-[![Build Status](https://travis-ci.org/JuliaML/Penalties.jl.svg?branch=master)](https://travis-ci.org/JuliaML/Penalties.jl)
+[![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl)
 
 
 # Warning
@@ -18,7 +18,7 @@ Penalties that apply to the parameter element-wise.
 - `SCADPenalty(λ, a)`
 
 ```julia
-using Penalties
+using PenaltyFunctions
 
 p = L1Penalty(.1)
 β = randn(5)

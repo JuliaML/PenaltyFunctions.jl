@@ -1,4 +1,4 @@
-# Penalties that evaluate on the entire array only
+# PenaltyFunctions that evaluate on the entire array only
 # TODO:
 # - GeneralizedL1Penalty?
 # - FusedL1Penalty
