@@ -3,6 +3,7 @@ __precompile__(true)
 module PenaltyFunctions
 
 importall LearnBase
+using RecipesBase
 
 export
     Penalty,
