@@ -91,18 +91,20 @@ prox{T<:Number}(p::ElementwisePenalty, θ::T, s::T) = _prox(p, θ, p.λ * s)
 prox{T<:Number}(p::ElementwisePenalty, x::AA{T}) = prox!(p, copy(x))
 prox{T<:Number}(p::ElementwisePenalty, x::AA{T}, s) = prox!(p, copy(x), s)
 
-
 @recipe function f(p::ElementwisePenalty)
-    :ylab --> "J(x)"
+    :ylab --> "g(x)"
     :xlab --> "x"
-    x = -2:.1:2
+    :ylim --> (0,)
+    :label --> name(p)
+    x = -1.5:.01:1.5
     y = map(x -> value(p, x), x)
     x, y
 end
 
 #-------------------------------------------------------------------------# NoPenalty
-"No Penalty: f(θ) = 0"
+"No Penalty: g(θ) = 0"
 type NoPenalty <: ElementwisePenalty end
+name(p::NoPenalty) = "NoPenalty"
 value(p::NoPenalty, θi::Number) = zero(θi)
 deriv(p::NoPenalty, θi::Number) = zero(θi)
 prox{T<:Number}(p::NoPenalty, θi::T) = θi
@@ -110,7 +112,7 @@ prox{T<:Number}(p::NoPenalty, θi::T, s::T) = θi
 
 
 #-------------------------------------------------------------------------# L1Penalty
-"L1-Norm Penalty: f(θ) = vecnorm(θ, 1)"
+"L1-Norm Penalty: g(θ) = vecnorm(θ, 1)"
 type L1Penalty{T <: Number} <: ElementwisePenalty
     λ::T
 end
@@ -124,7 +126,7 @@ _prox{T<:Number}(p::L1Penalty{T}, θi::T, λ::T) = soft_thresh(θi, λ)
 
 
 #-------------------------------------------------------------------------# L2Penalty
-"Squared L2-Norm Penalty: f(θ) = 0.5 * vecnorm(θ, 2) ^ 2"
+"Squared L2-Norm Penalty: g(θ) = 0.5 * vecnorm(θ, 2) ^ 2"
 type L2Penalty{T <: Number} <: ElementwisePenalty
     λ::T
 end
