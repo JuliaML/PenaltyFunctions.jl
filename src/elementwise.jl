@@ -91,14 +91,15 @@ prox{T<:Number}(p::ElementwisePenalty, θ::T, s::T) = _prox(p, θ, p.λ * s)
 prox{T<:Number}(p::ElementwisePenalty, x::AA{T}) = prox!(p, copy(x))
 prox{T<:Number}(p::ElementwisePenalty, x::AA{T}, s) = prox!(p, copy(x), s)
 
+
 @recipe function f(p::ElementwisePenalty)
+    :label --> name(p)
     :ylab --> "g(x)"
     :xlab --> "x"
     :ylim --> (0,)
-    :label --> name(p)
-    x = -1.5:.01:1.5
-    y = map(x -> value(p, x), x)
-    x, y
+    rng = -1.5:.01:1.5
+    y = map(x -> value(p, x), rng)
+    rng, y
 end
 
 #-------------------------------------------------------------------------# NoPenalty

@@ -3,9 +3,9 @@
 
 
 
-|                                      **Package Status**                                      | **Package Evaluator** |                                                             **Build Status**                                                              |
-|:--------------------------------------------------------------------------------------------:|:---------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------:|
-| [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) |                       | [![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl) |
+| **Package Status** | **Package Evaluator** | **Build Status** |
+|:------------------:|:---------------------:|:----------------:|
+| [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | | [![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl) |
 
 
 ## Available Penalties
@@ -15,7 +15,13 @@
 ### Element-wise Penalties
 *Penalties that apply to the parameter element-wise*
 
-![](https://cloud.githubusercontent.com/assets/8075494/20890409/c778e6f2-bad4-11e6-9485-6886b84b741e.png)
+
+| **Value** | **Constraint Formulation** |
+|:---------:|:--------------------------:|
+| Univariate Parameter | Bivariate Parameter |
+|![univariate](https://cloud.githubusercontent.com/assets/8075494/20890409/c778e6f2-bad4-11e6-9485-6886b84b741e.png) | TODO
+
+
 
 - `NoPenalty()`
 - `L1Penalty(λ)`
@@ -76,3 +82,14 @@ value(p, β, w)
 grad!(storage, p, β, w)
 prox!(p, β, w)
 ```
+
+## Documentation
+TODO
+
+## Installation
+```julia
+Pkg.clone("https://github.com/JuliaML/PenaltyFunctions.jl")
+```
+
+## License
+This code is free to use under the terms of the MIT license.
