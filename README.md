@@ -1,15 +1,27 @@
 # PenaltyFunctions
 
-[![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl)
 
 
-# Warning
-This package is in development and things may break/change
 
-# Usage
+| **Package Status** | **Package Evaluator** | **Build Status** |
+|:------------------:|:---------------------:|:----------------:|
+| [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | | [![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl) |
 
-## Element-wise Penalties
-Penalties that apply to the parameter element-wise.
+
+## Available Penalties
+
+
+
+### Element-wise Penalties
+*Penalties that apply to the parameter element-wise*
+
+
+| **Value** | **Constraint Formulation** |
+|:---------:|:--------------------------:|
+| Univariate Parameter | Bivariate Parameter |
+|![univariate](https://cloud.githubusercontent.com/assets/8075494/20890409/c778e6f2-bad4-11e6-9485-6886b84b741e.png) | TODO
+
+
 
 - `NoPenalty()`
 - `L1Penalty(λ)`
@@ -17,6 +29,26 @@ Penalties that apply to the parameter element-wise.
 - `ElasticNetPenalty(λ, α)`
 - `SCADPenalty(λ, a)`
 
+
+### Array Penalties
+*Penalties that need to be evaluated on the entire parameter*
+
+- `NuclearNormPenalty(λ)`
+- `MahalanobisPenalty(λ, C)`
+- `GroupLassoPenalty(λ)`
+
+```julia
+Θ = randn(10, 5)
+
+p = NuclearNormPenalty(.1)
+
+value(p, Θ)
+prox(p, Θ)
+prox!(p, Θ)
+```
+
+
+## Example
 ```julia
 using PenaltyFunctions
 
@@ -51,18 +83,13 @@ grad!(storage, p, β, w)
 prox!(p, β, w)
 ```
 
+## Documentation
+TODO
 
-## Array Penalties
-Penalties that need to be evaluated on the entire parameter
-
-- `NuclearNormPenalty`
-
+## Installation
 ```julia
-Θ = randn(10, 5)
-
-p = NuclearNormPenalty(.1)
-
-value(p, Θ)
-prox(p, Θ)
-prox!(p, Θ)
+Pkg.clone("https://github.com/JuliaML/PenaltyFunctions.jl")
 ```
+
+## License
+This code is free to use under the terms of the MIT license.

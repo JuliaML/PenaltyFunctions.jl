@@ -32,7 +32,11 @@ function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
     end
     x
 end
-
+function name(p::Penalty)
+    s = replace(string(p), "PenaltyFunctions.", "")
+    s = replace(s, r"\{.+", "")
+    s * "(lambda = $(p.λ))"
+end
 
 include("elementwise.jl")
 include("array.jl")

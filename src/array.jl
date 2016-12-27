@@ -57,7 +57,7 @@ end
 
 #-----------------------------------------------------------------# MahalanobisPenalty
 """
-    MahalanobisPenalty(C)
+    MahalanobisPenalty(λ, C)
 
 Supports a Mahalanobis distance penalty (`xᵀCᵀCx` for a vector `x`).
 """
