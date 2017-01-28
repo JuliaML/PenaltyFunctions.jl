@@ -7,7 +7,7 @@ using RecipesBase
 
 export
     Penalty,
-        ElementwisePenalty,
+        ElementPenalty,
             NoPenalty,
             L1Penalty,
             L2Penalty,
@@ -20,7 +20,7 @@ export
 
 typealias AA{T, N} AbstractArray{T, N}
 
-abstract ElementwisePenalty <: Penalty
+abstract ElementPenalty <: Penalty
 abstract ArrayPenalty <: Penalty
 
 

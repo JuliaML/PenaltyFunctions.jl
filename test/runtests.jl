@@ -77,7 +77,7 @@ end
     @test ∇ ≈ x + storage
 end
 
-@testset "ElementwisePenalty" begin
+@testset "ElementPenalty" begin
     @testset "Sanity Check" begin
         for p in [NoPenalty(), L1Penalty(.1), L2Penalty(.1),
                   ElasticNetPenalty(.1, .5), SCADPenalty(.1, 3.7)]
