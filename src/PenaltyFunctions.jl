@@ -16,12 +16,10 @@ export
         ArrayPenalty,
             NuclearNormPenalty,
             GroupLassoPenalty,
-            MahalanobisPenalty
+            MahalanobisPenalty,
+    addgrad
 
 typealias AA{T, N} AbstractArray{T, N}
-
-abstract ElementPenalty <: Penalty
-abstract ArrayPenalty <: Penalty
 
 
 # common functions
