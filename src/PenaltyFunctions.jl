@@ -19,7 +19,7 @@ export
             MahalanobisPenalty,
     addgrad
 
-typealias AA{T, N} AbstractArray{T, N}
+typealias AA AbstractArray
 
 
 # common functions
@@ -32,11 +32,8 @@ function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
     x
 end
 
-function name(p::Penalty)
-    s = replace(string(p), "PenaltyFunctions.", "")
-    s = replace(s, r"\{.+", "")
-    s * "(lambda = $(p.λ))"
-end
+name(p::Penalty) = replace(string(typeof(p)), "PenaltyFunctions.", "")
+Base.show(io::IO, p::Penalty) = print(io, name(p))
 
 include("elementpenalty.jl")
 include("arraypenalty.jl")

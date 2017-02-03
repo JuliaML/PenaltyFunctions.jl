@@ -1,13 +1,13 @@
 """
 Penalties that are applied element-wise.
 """
-abstract ElementPenalty
+abstract ElementPenalty <: Penalty
 
 #-------------------------------------------------------------------------------# methods
-value{T<:Number}(p::ElementPenalty, θ::T, s::T)     = s * value(p, θ)
-value{T<:Number}(p::ElementPenalty, θ::AA{T})       = sum(x -> value(p, x), θ)
-value{T<:Number}(p::ElementPenalty, θ::AA{T}, s::T) = sum(x -> value(p, x, s), θ)
-function value{T<:Number}(p::ElementPenalty, θ::AA{T}, s::AA{T})
+value{T}(p::ElementPenalty, θ::T, s::T)     = s * value(p, θ)
+value{T}(p::ElementPenalty, θ::AA{T})       = sum(x -> value(p, x), θ)
+value{T}(p::ElementPenalty, θ::AA{T}, s::T) = sum(x -> value(p, x, s), θ)
+function value{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})
     @assert size(θ) == size(s)
     sum(map((x,y) -> value(p, x, y), θ, s))
 end
@@ -61,77 +61,107 @@ function addgrad!{T}(∇::AA{T}, p::ElementPenalty, θ::AA{T}, s::AA{T})
 end
 
 #----------------------------------------------------------------------# ElementPenalties
+"""
+Unpenalized
+"""
 immutable NoPenalty <: ElementPenalty end
 value(p::NoPenalty, θ::Number) = zero(θ)
 deriv(p::NoPenalty, θ::Number) = zero(θ)
 prox{T <: Number}(p::NoPenalty, θ::T, s::T) = θ
 
+"""
+L1Penalty aka LASSO
+"""
 immutable L1Penalty <: ElementPenalty end
 value(p::L1Penalty, θ::Number) = abs(θ)
 deriv(p::L1Penalty, θ::Number) = sign(θ)
 prox{T <: Number}(p::L1Penalty, θ::T, s::T) = soft_thresh(θ, s)
 
+"""
+L2Penalty aka Ridge
+"""
 immutable L2Penalty <: ElementPenalty end
 value(p::L2Penalty, θ::Number) = typeof(θ)(0.5) * θ * θ
 deriv(p::L2Penalty, θ::Number) = θ
-prox{T<:Number}(p::L2Penalty, θ::T, s::T) = θ / (one(T) + s)
+prox{T <: Number}(p::L2Penalty, θ::T, s::T) = θ / (one(T) + s)
 
+"""
+ElasticNetPenalty
+"""
 immutable ElasticNetPenalty{T <: Number} <: ElementPenalty α::T end
 ElasticNetPenalty(α::Number) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
-function value{T <: Number}(p::ElasticNetPenalty{T}, θ::T)
-    p.α * value(L1Penalty(), θ) + (1 - p.α) * value(L2Penalty(), θ)
-end
-function deriv{T <: Number}(p::ElasticNetPenalty{T}, θ::T)
-    p.α * deriv(L1Penalty(), θ) + (1 - p.α) * deriv(L2Penalty(), θ)
+for f in [:value, :deriv]
+    @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
+        p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
+    end
 end
 function prox{T <: Number}(p::ElasticNetPenalty{T}, θ::T, s::T)
     αs = p.α * s
     soft_thresh(θ, αs) / (one(T) + s - αs)
 end
 
-# #-----------------------------------------------------------------------# SCADPenalty
-# # http://www.pstat.ucsb.edu/student%20seminar%20doc/SCAD%20Jian%20Shi.pdf
-# # For prox: http://arxiv.org/pdf/1412.2999.pdf
-# # Needs tests
-# type SCADPenalty{T <: Number} <: ElementPenalty
-#     λ::T
-#     a::T
-# end
-# function SCADPenalty(λ::Number = 0.1, a::Number = 3.7)
-#     @assert λ >= zero(λ)
-#     @assert a > T(2)
-#     SCADPenalty(λ, a)
-# end
-# function value{T <: Number}(p::SCADPenalty{T}, θi::T)
-#     absθ = abs(θi)
-#     a, λ = p.a, p.λ
-#     if absθ < λ
-#         return λ * absθ
-#     elseif absθ <= λ * a
-#         return -T(0.5) * (absθ ^ 2 - T(2) * a * λ * absθ + λ ^ 2) / (a - one(T))
-#     else
-#         return T(0.5) * (a + one(T)) * λ * λ
-#     end
-# end
-# function deriv{T <: Number}(p::SCADPenalty{T}, θi::T)
-#     absθ = abs(θi)
-#     a, λ = p.a, p.λ
-#     if absθ < λ
-#         return λ * sign(θi)
-#     elseif absθ <= λ * a
-#         return -(absθ - a * λ * sign(θi)) / (a - one(T))
-#     else
-#         return zero(T)
-#     end
-# end
-# function _prox{T <: Number}(p::SCADPenalty{T}, θi::T, λ::T)
-#     a = p.a
-#     absθ = abs(θi)
-#     if absθ < T(2) * λ
-#         return soft_thresh(θi, λ)
-#     elseif absθ <= λ * a
-#         return (θi - λ * sign(θi) * a / (a - one(T))) / (one(T) - one(T) / (a - one(T)))
-#     else
-#         return θi
-#     end
-# end
+#-----------------------------------------------------------------------# SCADPenalty
+# http://www.pstat.ucsb.edu/student%20seminar%20doc/SCAD%20Jian%20Shi.pdf
+"""
+Smoothly Clipped Absolute Deviation Penalty
+
+SCADPenalty does not take the form: λ * g(θ)
+"""
+immutable SCADPenalty{T <: Number} <: ElementPenalty
+    a::T
+end
+SCADPenalty(a::Number = 3.7) = (@assert a > 2; SCADPenalty(a))
+function value{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
+    absθ = abs(θ)
+    if absθ < λ
+        return λ * absθ
+    elseif absθ <= λ * p.a
+        return -T(0.5) * (absθ ^ 2 - 2 * p.a * λ * absθ + λ ^ 2) / (p.a - one(T))
+    else
+        return T(0.5) * (p.a + 1) * λ * λ
+    end
+end
+function deriv{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
+    absθ = abs(θ)
+    if absθ < λ
+        return λ * sign(θ)
+    elseif absθ <= λ * p.a
+        return -(absθ - p.a * λ * sign(θ)) / (p.a - 1)
+    else
+        return zero(T)
+    end
+end
+function prox{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
+    absθ = abs(θ)
+    if absθ < 2λ
+        return prox(L1Penalty(), θ, λ)
+    elseif absθ <= λ * p.a
+        return prox(L1Penalty(), θ, λ * p.a / (p.a - 1)) * (p.a - 1) / (p.a - 2)
+    else
+        return θ
+    end
+end
+
+
+
+#--------------------------------------------------------------------------------# scaled
+_scaled_error() = throw(ArgumentError("Scale factor λ has to be strictly positive."))
+immutable ScaledElementPenalty{P <: ElementPenalty, λ} <: ElementPenalty
+    penalty::P
+    ScaledElementPenalty(pen::P) = typeof(λ) <: Number ? new(pen) : _scaled_error()
+end
+ScaledElementPenalty{P,λ}(pen::P, ::Type{Val{λ}}) = ScaledElementPenalty{P,λ}(pen)
+Base.show{P, λ}(io::IO, sp::ScaledElementPenalty{P, λ}) = println(io, "$λ * ", sp.penalty)
+
+scaled(p::ElementPenalty, λ::Number) = ScaledElementPenalty(p, Val{λ})
+
+value{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = λ * value(p.penalty, θ)
+deriv{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = λ * deriv(p.penalty, θ)
+prox{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = prox(p.penalty, θ, λ)
+
+# SCAD is special
+for f in [:value, :deriv]
+    @eval function ($f){P <: SCADPenalty, λ}(p::ScaledElementPenalty{P, λ}, θ::Number)
+        ($f)(p.penalty, θ, λ)
+    end
+end
