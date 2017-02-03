@@ -2,52 +2,6 @@ module Tests
 using LearnBase, PenaltyFunctions, Base.Test
 
 
-# Test value, in the order:
-# value(pen, θ[1])            scalar
-# value(pen, θ[1], s[1])      scalar, weighted by scalar
-# value(pen, θ)               array
-# value(pen, θ, s[1])         array, weighted by scalar
-# value(pen, θ, s)            array, weighted by array
-function test_value(pen, θ, s, v1, v2, v3, v4, v5)
-    @test value(pen, θ[1])        ≈ v1
-    @test value(pen, θ[1], s[1])  ≈ v2
-    @test value(pen, θ)           ≈ v3
-    @test value(pen, θ, s[1])     ≈ v4
-    @test value(pen, θ, s)        ≈ v5
-end
-
-# test deriv/grad, in the order:
-# deriv(pen, θ[1])                scalar
-# deriv(pen, θ[1], s[1])          scalar, weighted by scalar
-# grad(pen, θ)                    array
-# grad!(buffer, pen, θ)           array, overwrite buffer
-# grad!(buffer, pen, θ, s[1])     array, weighted by scalar, overwrite buffer
-# grad!(buffer, pen, θ, s)        array, weighted by array, overwrite buffer
-function test_deriv(pen, θ, s, buffer, v1, v2, v3, v4, v5, v6)
-    @test deriv(pen, θ[1])                      ≈ v1
-    @test deriv(pen, θ[1], s[1])                ≈ v2
-    @test grad(pen, θ)                          ≈ v3
-    grad!(buffer, pen, θ);        @test buffer  ≈ v4
-    grad!(buffer, pen, θ, s[1]);  @test buffer  ≈ v5
-    grad!(buffer, pen, θ, s);     @test buffer  ≈ v6
-end
-
-# test prox/prox!, in the order
-# prox(pen, θ[1], s[1])     scalar, weighted by scalar
-# prox!(pen, θ, s[1])       array, weighted by scalar
-# prox!(pen, θ, s)          array, weighted by array
-function test_prox(pen, θ, s, v1, v2, v3)
-    @test prox(pen, θ[1], s[1])     ≈ v1
-    prox!(pen, θ, s[1]); @test θ    ≈ v2
-    prox!(pen, θ, s); @test θ       ≈ v3
-end
-
-function test_addgrad(pen, θ, s, buffer, v1, v2, v3)
-    @test addgrad(.1, pen, θ[1])              ≈ v1
-    @test addgrad(.1, pen, θ[1], .1)          ≈ v2
-    addgrad!(buffer, pen, θ); @test buffer    ≈ v3
-end
-
 #---------------------------------------------------------------------------# Begin Tests
 
 @testset "Common" begin
@@ -56,28 +10,61 @@ end
     @test PenaltyFunctions.name(L1Penalty()) == "L1Penalty"
 end
 
+
 @testset "ElementPenalty" begin
-    @testset "NoPenalty" begin
-        p = NoPenalty()
-        θ, s, buffer = rand(10), rand(10), rand(10)
-
-        test_value(p, θ, s, zeros(5)...)
-        test_deriv(p, θ, s, buffer, 0.0, 0.0, zeros(10), zeros(10), zeros(10), zeros(10))
-        test_prox(p, θ, s, θ[1], copy(θ), copy(θ))
-        test_addgrad(p, θ, s, buffer, .1, .1, copy(buffer))
+    function test_element_penalty(p::Penalty, θ::Number, s::Number, v1, v2, v3)
+        @testset "$(PenaltyFunctions.name(p))" begin
+            @test value(p, θ)   ≈ v1
+            @test deriv(p, θ)   ≈ v2
+            @test prox(p, θ, s) ≈ v3
+        end
     end
-    @testset "L1Penalty" begin
+
+    θ, s = rand(), rand()
+
+    test_element_penalty(NoPenalty(), θ, s, 0.0, 0.0, θ)
+
+    test_element_penalty(L1Penalty(), θ, s, abs(θ), sign(θ), max(0.0, θ - sign(θ) * s))
+
+    test_element_penalty(L2Penalty(), θ, s, .5 * θ^2, θ, θ / (1 + s))
+
+    test_element_penalty(ElasticNetPenalty(.4), θ, s,
+        .4 * value(L1Penalty(), θ) + .6 * value(L2Penalty(), θ),
+        .4 * deriv(L1Penalty(), θ) + .6 * deriv(L2Penalty(), θ),
+        prox(L2Penalty(), prox(L1Penalty(), θ, .4s), .6s)
+    )
+
+    @testset "ElementPenalty methods" begin
         p = L1Penalty()
-        θ = rand(10)
-        θ2 = copy(θ)
-        s = rand(10)
-        buffer = rand(10)
+        θ, s = rand(10), rand(10)
+        @testset "value" begin
+            @test value(p, θ)       ≈ sum(abs, θ)
+            @test value(p, θ, s[1]) ≈ s[1] * sum(abs, θ)
+            @test value(p, θ, s)    ≈ sum(s .* abs.(θ))
+        end
+        @testset "deriv/grad" begin
+            @test deriv(p, θ[1], s[1])  ≈ s[1] * sign(θ[1])
+            @test grad(p, θ)            ≈ sign.(θ)
+            @test grad(p, θ, s[1])      ≈ s[1] * sign.(θ)
+            @test grad(p, θ, s)         ≈ s .* sign.(θ)
 
-        test_value(p, θ, s, abs(θ[1]), s[1] * abs(θ[1]), sum(abs, θ), s[1] * sum(abs, θ),
-            sum(s .* abs.(θ)))
-        test_deriv(p, θ, s, buffer, sign(θ[1]), s[1] * sign(θ[1]), sign(θ), sign.(θ),
-            s[1] * sign.(θ), s .* sign.(θ))
+            buffer = rand(10)
+            grad!(buffer, p, θ); @test buffer       ≈ sign.(θ)
+            grad!(buffer, p, θ, s[1]); @test buffer ≈ s[1] * sign.(θ)
+            grad!(buffer, p, θ, s); @test buffer    ≈ s .* sign.(θ)
 
+            addgrad(buffer[1], p, θ[1]) ≈ buffer[1] + sign(θ[1])
+            addgrad(buffer[1], p, θ[1], s[1]) ≈ buffer[1] + s[1] * sign(θ[1])
+            ∇ = rand(10)
+            ∇2 = copy(∇)
+            addgrad!(∇, p, θ); @test ∇ ≈ ∇2 + sign.(θ)
+            ∇ = rand(10)
+            ∇2 = copy(∇)
+            addgrad!(∇, p, θ, s[1]); @test ∇ ≈ ∇2 + s[1] * sign.(θ)
+            ∇ = rand(10)
+            ∇2 = copy(∇)
+            addgrad!(∇, p, θ, s); @test ∇ ≈ ∇2 + s .* sign.(θ)
+        end
     end
 end
 
