@@ -87,5 +87,9 @@ end
         end
     end
 end
+@testset "ScaledElementPenalty" begin
+    p = L1Penalty()
+    s = scaled(p, .1)
+end
 
 end
