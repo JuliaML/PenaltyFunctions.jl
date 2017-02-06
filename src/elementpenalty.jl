@@ -86,7 +86,7 @@ deriv(p::L2Penalty, θ::Number) = θ
 prox{T <: Number}(p::L2Penalty, θ::T, s::T) = θ / (one(T) + s)
 
 """
-ElasticNetPenalty
+ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 """
 immutable ElasticNetPenalty{T <: Number} <: ElementPenalty α::T end
 ElasticNetPenalty(α::Number) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
@@ -104,8 +104,6 @@ end
 # http://www.pstat.ucsb.edu/student%20seminar%20doc/SCAD%20Jian%20Shi.pdf
 """
 Smoothly Clipped Absolute Deviation Penalty
-
-SCADPenalty does not take the form: λ * g(θ)
 """
 immutable SCADPenalty{T <: Number} <: ElementPenalty
     a::T
@@ -150,7 +148,7 @@ immutable ScaledElementPenalty{P <: ElementPenalty, λ} <: ElementPenalty
     penalty::P
     ScaledElementPenalty(pen::P) = typeof(λ) <: Number ? new(pen) : _scaled_error()
 end
-ScaledElementPenalty{P,λ}(pen::P, ::Type{Val{λ}}) = ScaledElementPenalty{P,λ}(pen)
+ScaledElementPenalty{P, λ}(pen::P, ::Type{Val{λ}}) = ScaledElementPenalty{P,λ}(pen)
 Base.show{P, λ}(io::IO, sp::ScaledElementPenalty{P, λ}) = println(io, "$λ * ", sp.penalty)
 
 scaled(p::ElementPenalty, λ::Number) = ScaledElementPenalty(p, Val{λ})

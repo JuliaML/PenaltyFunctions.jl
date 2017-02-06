@@ -36,9 +36,15 @@ end
 
         @test value(p, .1, .2) ≈ .02
         @test value(p, .2, .1) ≈ -.5 * (.2^2 - .2^2 * 3.8 + .01) / (2.8)
-        @test value(p, 10., .1) ≈ .5 * 4.8 * .01
+        @test value(p, 9., .1) ≈ .5 * 4.8 * .01
 
-        # TODO: same thing as value for deriv and prox
+        @test deriv(p, .1, .2) ≈ .2
+        @test deriv(p, .2, .1) ≈ .1 * (3.8 * .1 - .2) / (2.8 * .1)
+        @test deriv(p, 9., .1) ≈ 0.
+
+        @test prox(p, .1, .2) ≈ 0.
+        @test prox(p, .2, .1) ≈ (2.8 * .2 - 3.8 * .1) / 1.8
+        @test prox(p, 9., .1) ≈ 9.
     end
 
     @testset "ElementPenalty methods" begin

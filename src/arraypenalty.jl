@@ -6,54 +6,36 @@ abstract ArrayPenalty <: Penalty
 #------------------------------------------------------------------# abstract methods
 value{T <: Number}(p::ArrayPenalty, A::AA{T}, λ::T) = λ * value(p, A)
 
-prox!{T <: Number}(p::ArrayPenalty, A::AA{T}) = _prox!(p, A, p.λ)
-prox!{T <: Number}(p::ArrayPenalty, A::AA{T}, s::T) = _prox!(p, A, s * p.λ)
-prox{T <: Number}(p::ArrayPenalty, A::AA{T}) = prox!(p, deepcopy(A))
-prox{T <: Number}(p::ArrayPenalty, A::AA{T}, s::T) = prox!(p, deepcopy(A), s)
-
 
 #----------------------------------------------------------------# NuclearNormPenalty
-type NuclearNormPenalty{T <: Number} <: ArrayPenalty
-    λ::T
+immutable NuclearNormPenalty <: ArrayPenalty end
+function value{T <: Number}(p::NuclearNormPenalty, A::AbstractMatrix{T})
+    >(size(A)...) ? trace(sqrtm(A'A)) : trace(sqrtm(A * A'))
 end
-NuclearNormPenalty(λ::Number = 0.1) = NuclearNormPenalty(λ)
-
-function value{T <: Number}(p::NuclearNormPenalty{T}, A::AA{T, 2})
-    if size(A, 1) > size(A, 2)
-        return trace(sqrtm(A'A))
-    else
-        return trace(sqrtm(A * A'))
-    end
-end
-
-function _prox!{T <: Number}(p::NuclearNormPenalty{T}, A::AA{T, 2}, s::T)
+function prox!{T <: Number}(p::NuclearNormPenalty, A::AbstractMatrix{T}, λ::T)
     svdecomp = svdfact!(A)
-    soft_thresh!(svdecomp.S, s)
+    soft_thresh!(svdecomp.S, λ)
     copy!(A, full(svdecomp))
 end
 
 
-# #-----------------------------------------------------------------# GroupLassoPenalty
-# "Group Lasso Penalty.  Able to set the entire vector (group) to 0."
-# type GroupLassoPenalty{T <: Number} <: ArrayPenalty
-#     λ::T
-# end
-# GroupLassoPenalty(λ::Number = 0.1) = GroupLassoPenalty(λ)
-#
-# value{T <: Number}(p::GroupLassoPenalty{T}, A::AA{T, 1}) = vecnorm(A)
-#
-# function _prox!{T <: Number}(p::GroupLassoPenalty{T}, A::AA{T, 1}, s::T)
-#     denom = vecnorm(A)
-#     if denom <= s
-#         fill!(A, zero(T))
-#     else
-#         scaling = p.λ / denom
-#         for i in eachindex(A)
-#             @inbounds A[i] = A[i] - scaling * A[i]
-#         end
-#     end
-#     A
-# end
+#-----------------------------------------------------------------# GroupLassoPenalty
+"Group Lasso Penalty.  Able to set the entire vector (group) to 0."
+immutable GroupLassoPenalty <: ArrayPenalty end
+value{T <: Number}(p::GroupLassoPenalty, A::AbstractMatrix{T}) = vecnorm(A)
+function prox!{T <: Number}(p::GroupLassoPenalty, A::AbstractMatrix{T}, λ::T)
+    denom = vecnorm(A)
+    if denom <= λ
+        fill!(A, zero(T))
+    else
+        scaling = λ / denom
+        for i in eachindex(A)
+            @inbounds A[i] = (1 - scaling) * A[i]
+        end
+    end
+    A
+end
+
 #
 # #-----------------------------------------------------------------# MahalanobisPenalty
 # """
