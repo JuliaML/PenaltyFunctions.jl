@@ -36,35 +36,28 @@ function prox!{T <: Number}(p::GroupLassoPenalty, A::AbstractMatrix{T}, λ::T)
     A
 end
 
-#
-# #-----------------------------------------------------------------# MahalanobisPenalty
-# """
-#     MahalanobisPenalty(λ, C)
-#
-# Supports a Mahalanobis distance penalty (`xᵀCᵀCx` for a vector `x`).
-# """
-# type MahalanobisPenalty{T <: Number} <: ArrayPenalty
-#     λ::T
-#     C::AA{T,2}
-#     CtC::AA{T,2}
-#     sλ::T
-#     CtC_Isλ::Base.LinAlg.LU{T, Array{T,2}} # LU factorization of C'C + I/sλ
-# end
-# function MahalanobisPenalty{T}(λ::T, C::AA{T,2}, s::T=one(T))
-#     MahalanobisPenalty(λ, C, C'C, s*λ, lufact(C'C + I/(λ*s)))
-# end
-# function MahalanobisPenalty{T}(C::AA{T,2}, s::T=one(T))
-#     MahalanobisPenalty(one(T), C, C'C, s, lufact(C'C + I/s))
-# end
-#
-# value{T <: Number}(p::MahalanobisPenalty{T}, x) = T(0.5) * p.λ * sumabs2(p.C * x)
-#
-# function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, sλ::T)
-#     if sλ != p.sλ
-#         p.sλ = sλ
-#         p.CtC_Isλ = lufact(p.CtC + I/sλ)
-#     end
-#
-#     scale!(A, 1 / sλ)
-#     A_ldiv_B!(p.CtC_Isλ, A) # overwrites result in A
-# end
+
+#-----------------------------------------------------------------# MahalanobisPenalty
+"""
+    MahalanobisPenalty(C)
+
+Supports a Mahalanobis distance penalty (`xᵀCᵀCx` for a vector `x`).
+"""
+type MahalanobisPenalty{T <: Number} <: ArrayPenalty
+    C::AA{T,2}
+    CtC::AA{T,2}
+    CtC_Iλ::Base.LinAlg.LU{T, Matrix{T}} # LU factorization of C'C + I/λ
+    λ::T
+end
+function MahalanobisPenalty{T}(C::AbstractMatrix{T}, λ::T = one(T))
+    MahalanobisPenalty(C, C'C, lufact(C'C + I), λ)
+end
+value{T}(p::MahalanobisPenalty{T}, x::AbstractVector{T}) = T(0.5) * sum(abs2, p.C * x)
+function prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, λ::T)
+    if λ != p.λ
+        p.λ = λ
+        p.CtC_Iλ = lufact(p.CtC + I / λ)
+    end
+    scale!(A, 1 / λ)
+    A_ldiv_B!(p.CtC_Iλ, A) # overwrites result in A
+end

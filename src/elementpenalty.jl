@@ -20,6 +20,8 @@ function prox!{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})
     end
     θ
 end
+prox{T}(p::ElementPenalty, θ::AA{T}, s::T)      = prox!(p, copy(θ), s)
+prox{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})  = prox!(p, copy(θ), s)
 
 deriv{T}(p::ElementPenalty, θ::T, s::T) = s * deriv(p, θ)
 grad{T}(p::ElementPenalty, θ::AA{T})                = grad!(similar(θ), p, θ)
@@ -156,6 +158,7 @@ scaled(p::ElementPenalty, λ::Number) = ScaledElementPenalty(p, Val{λ})
 value{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = λ * value(p.penalty, θ)
 deriv{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = λ * deriv(p.penalty, θ)
 prox{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = prox(p.penalty, θ, λ)
+prox{P, λ, T}(p::ScaledElementPenalty{P, λ}, θ::AA{T}) = prox(p.penalty, θ, λ)
 
 # SCAD is special
 for f in [:value, :deriv]

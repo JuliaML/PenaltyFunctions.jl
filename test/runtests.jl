@@ -89,7 +89,12 @@ end
 end
 @testset "ScaledElementPenalty" begin
     p = L1Penalty()
-    s = scaled(p, .1)
+    s = P.scaled(p, .1)
+    x = randn(5)
+    @test value(s, x) ≈ .1 * value(p, x)
+    @test deriv(s, x[1]) ≈ .1 * deriv(p, x[1])
+    @test grad(s, x) ≈ .1 * grad(p, x)
+    @test prox(s, x) ≈ prox(s, x, .1)
 end
 
 end
