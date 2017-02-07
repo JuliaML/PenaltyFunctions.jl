@@ -92,6 +92,7 @@ ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 """
 immutable ElasticNetPenalty{T <: Number} <: ElementPenalty α::T end
 ElasticNetPenalty(α::Number) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
+name(p::ElasticNetPenalty) = "ElasticNetPenalty($(p.α))"
 for f in [:value, :deriv]
     @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
         p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
@@ -111,6 +112,7 @@ immutable SCADPenalty{T <: Number} <: ElementPenalty
     a::T
 end
 SCADPenalty(a::Number = 3.7) = (@assert a > 2; SCADPenalty(a))
+name(p::SCADPenalty) = "SCADPenalty($(p.a))"
 function value{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
     absθ = abs(θ)
     if absθ < λ
@@ -165,4 +167,14 @@ for f in [:value, :deriv]
     @eval function ($f){P <: SCADPenalty, λ}(p::ScaledElementPenalty{P, λ}, θ::Number)
         ($f)(p.penalty, θ, λ)
     end
+end
+
+#--------------------------------------------------------------------------------# plot
+@recipe function f(p::ElementPenalty)
+    label --> name(p)
+    xlims --> (-4, 4)
+    ylabel --> "penalty value"
+    xlabel --> "parameter"
+    g(x) = value(p, x, 1.)
+    g
 end
