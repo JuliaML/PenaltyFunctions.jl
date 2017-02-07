@@ -94,7 +94,40 @@ end
     @test value(s, x) ≈ .1 * value(p, x)
     @test deriv(s, x[1]) ≈ .1 * deriv(p, x[1])
     @test grad(s, x) ≈ .1 * grad(p, x)
-    @test prox(s, x) ≈ prox(s, x, .1)
+    @test prox(s, x) ≈ prox(p, x, .1)
+
+    p = ElasticNetPenalty(.7)
+    s = P.scaled(p, .2)
+    x = randn(5)
+    @test value(s, x) ≈ .2 * value(p, x)
+    @test deriv(s, x[1]) ≈ .2 * deriv(p, x[1])
+    @test grad(s, x) ≈ .2 * grad(p, x)
+    @test prox(s, x) ≈ prox(p, x, .2)
+end
+@testset "ArrayPenalty" begin
+    @testset "NuclearNormPenalty" begin
+        p = NuclearNormPenalty()
+        Θ = randn(10, 5)
+        s = .05
+        @test value(p, Θ) ≈ sum(svd(Θ)[2])
+        @test value(p, Θ, s) ≈ s * sum(svd(Θ)[2])
+        prox!(p, Θ, s)
+    end
+    @testset "GroupLassoPenalty" begin
+        p = GroupLassoPenalty()
+        Θ = randn(10)
+        s = .05
+        @test value(p, Θ) ≈ vecnorm(Θ)
+        prox!(p, Θ, s)
+    end
+    @testset "MahalanobisPenalty" begin
+        C = randn(5, 10)
+        p = MahalanobisPenalty(C)
+        θ = rand(10)
+        s = .05
+        @test value(p, θ) ≈ 0.5 * dot(C * θ, C * θ)
+        prox!(p, θ, s)
+    end
 end
 
-end
+end  # module

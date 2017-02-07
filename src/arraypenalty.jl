@@ -22,8 +22,8 @@ end
 #-----------------------------------------------------------------# GroupLassoPenalty
 "Group Lasso Penalty.  Able to set the entire vector (group) to 0."
 immutable GroupLassoPenalty <: ArrayPenalty end
-value{T <: Number}(p::GroupLassoPenalty, A::AbstractMatrix{T}) = vecnorm(A)
-function prox!{T <: Number}(p::GroupLassoPenalty, A::AbstractMatrix{T}, λ::T)
+value{T <: Number}(p::GroupLassoPenalty, A::AA{T}) = vecnorm(A)
+function prox!{T <: Number}(p::GroupLassoPenalty, A::AA{T}, λ::T)
     denom = vecnorm(A)
     if denom <= λ
         fill!(A, zero(T))
