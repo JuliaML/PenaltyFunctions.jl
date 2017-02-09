@@ -2,8 +2,16 @@ module Tests
 using LearnBase, PenaltyFunctions, Base.Test
 P = PenaltyFunctions
 
-#---------------------------------------------------------------------------# Begin Tests
+info("Show methods:")
+@testset "Show" begin
+    for p in [NoPenalty(), L1Penalty(), L2Penalty(), ElasticNetPenalty(.5), SCADPenalty(),
+              NuclearNormPenalty(), GroupLassoPenalty(), MahalanobisPenalty(rand(3,2))]
+        println(p)
+    end
+    println("\n")
+end
 
+#---------------------------------------------------------------------------# Begin Tests
 @testset "Common" begin
     @test P.soft_thresh(1.0, 0.5) == 0.5
     @test P.soft_thresh!(ones(5), .5) == .5 * ones(5)
@@ -89,7 +97,7 @@ end
 end
 @testset "ScaledElementPenalty" begin
     p = L1Penalty()
-    s = P.scaled(p, .1)
+    s = scaled(p, .1)
     x = randn(5)
     @test value(s, x) ≈ .1 * value(p, x)
     @test deriv(s, x[1]) ≈ .1 * deriv(p, x[1])
@@ -97,7 +105,7 @@ end
     @test prox(s, x) ≈ prox(p, x, .1)
 
     p = ElasticNetPenalty(.7)
-    s = P.scaled(p, .2)
+    s = scaled(p, .2)
     x = randn(5)
     @test value(s, x) ≈ .2 * value(p, x)
     @test deriv(s, x[1]) ≈ .2 * deriv(p, x[1])
@@ -127,6 +135,15 @@ end
         s = .05
         @test value(p, θ) ≈ 0.5 * dot(C * θ, C * θ)
         prox!(p, θ, s)
+    end
+    @testset "ScaledArrayPenalty" begin
+        p = GroupLassoPenalty()
+        s = scaled(p, .1)
+        Θ = randn(10)
+        @test value(p, Θ, .1) ≈ value(s, Θ)
+
+        Θ2 = copy(Θ)
+        prox!(p, Θ, .1); prox!(s, Θ2); @test Θ ≈ Θ2
     end
 end
 

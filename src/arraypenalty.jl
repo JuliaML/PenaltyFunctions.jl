@@ -61,3 +61,17 @@ function prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, λ::T)
     scale!(A, 1 / λ)
     A_ldiv_B!(p.CtC_Iλ, A) # overwrites result in A
 end
+
+
+#--------------------------------------------------------------------------------# scaled
+immutable ScaledArrayPenalty{P <: ArrayPenalty, λ} <: ArrayPenalty
+    penalty::P
+    ScaledArrayPenalty(pen::P) = typeof(λ) <: Number ? new(pen) : _scaled_error()
+end
+ScaledArrayPenalty{P, λ}(pen::P, ::Type{Val{λ}}) = ScaledArrayPenalty{P,λ}(pen)
+Base.show{P, λ}(io::IO, sp::ScaledArrayPenalty{P, λ}) = println(io, "$λ * ", sp.penalty)
+
+scaled(p::ArrayPenalty, λ::Number) = ScaledArrayPenalty(p, Val{λ})
+
+value{P, λ}(p::ScaledArrayPenalty{P, λ}, θ::AA) = λ * value(p.penalty, θ)
+prox!{P, λ, T}(p::ScaledArrayPenalty{P, λ}, θ::AA{T}) = prox!(p.penalty, θ, λ)
