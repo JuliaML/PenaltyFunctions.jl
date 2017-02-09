@@ -115,7 +115,7 @@ end
         p = L1Penalty(.1)
         β = randn(10)
         storage = zeros(10)
-        @test value(p, β) ≈ .1 * sumabs(β)
+        @test value(p, β) ≈ .1 * sum(abs, β)
         @test deriv(p, β[1]) ≈ .1 * sign(β[1])
         grad!(storage, p, β)
         @test storage ≈ .1 * map(sign, β)
@@ -126,7 +126,7 @@ end
         p = L2Penalty(.1)
         β = randn(10)
         storage = zeros(10)
-        @test value(p, β) ≈ .5 * .1 * sumabs2(β)
+        @test value(p, β) ≈ .5 * .1 * sum(abs2, β)
         @test deriv(p, β[1]) ≈ .1 * β[1]
         grad!(storage, p, β)
         @test storage ≈ .1 * β
@@ -137,7 +137,7 @@ end
         p = ElasticNetPenalty(.1, .7)
         β = randn(10)
         storage = zeros(10)
-        @test value(p, β) ≈ .1 * (.7 * sumabs(β) + .3 * .5 * sumabs2(β))
+        @test value(p, β) ≈ .1 * (.7 * sum(abs, β) + .3 * .5 * sum(abs2, β))
         @test deriv(p, β[1]) ≈ .1 * .7 * sign(β[1]) + .1 * .3 * β[1]
         grad!(storage, p, β)
         @test storage ≈ .1 * .7 * map(sign, β) + .1 * .3 * β
@@ -151,13 +151,13 @@ end
         factor = rand(10)
         storage = zeros(10)
 
-        @test value(p, β) ≈ p.λ * sumabs(β)
-        @test value(p, β, factor) ≈ p.λ * sum(factor .* abs(β))
+        @test value(p, β) ≈ p.λ * sum(abs, β)
+        @test value(p, β, factor) ≈ p.λ * sum(factor .* abs.(β))
 
         grad!(storage, p, β)
-        @test storage ≈ p.λ * sign(β)
+        @test storage ≈ p.λ * sign.(β)
         grad!(storage, p, β, factor)
-        @test storage ≈ p.λ * sign(β) .* factor
+        @test storage ≈ p.λ * sign.(β) .* factor
 
         prox!(p, β)
         @test β ≈ map(x->PenaltyFunctions.soft_thresh(x, p.λ), βcopy)
