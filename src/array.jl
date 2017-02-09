@@ -75,7 +75,7 @@ function MahalanobisPenalty{T}(C::AA{T,2}, s::T=one(T))
     MahalanobisPenalty(one(T), C, C'C, s, lufact(C'C + I/s))
 end
 
-value{T <: Number}(p::MahalanobisPenalty{T}, x) = T(0.5) * p.λ * sumabs2(p.C * x)
+value{T <: Number}(p::MahalanobisPenalty{T}, x) = T(0.5) * p.λ * sum(abs2, p.C * x)
 
 function _prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, sλ::T)
     if sλ != p.sλ
