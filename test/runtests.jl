@@ -2,11 +2,19 @@ module Tests
 using LearnBase, PenaltyFunctions, Base.Test
 P = PenaltyFunctions
 
+
+element_penalties = [NoPenalty(), L1Penalty(), L2Penalty(), ElasticNetPenalty(.7),
+                     SCADPenalty(3.7)]
+array_penalties = [NuclearNormPenalty(), GroupLassoPenalty(),
+                   MahalanobisPenalty(rand(3,2))]
+
+penalty_list = vcat(element_penalties, array_penalties)
+
 info("Show methods:")
 @testset "Show" begin
-    for p in [NoPenalty(), L1Penalty(), L2Penalty(), ElasticNetPenalty(.5), SCADPenalty(),
-              NuclearNormPenalty(), GroupLassoPenalty(), MahalanobisPenalty(rand(3,2))]
+    for p in penalty_list
         println(p)
+        println(scaled(p, .1))
     end
     println("\n")
 end
@@ -92,17 +100,22 @@ end
             prox!(p, θ, s[1]); @test θ ≈ P.soft_thresh.(θ2, s[1])
             θ = copy(θ2)
             prox!(p, θ, s); @test θ ≈ P.soft_thresh.(θ2, s)
+
+            θ = rand(5)
+            s = rand(5)
+            @test prox(p, θ, s) == map((x,y) -> prox(p, x, y), θ, s)
         end
     end
 end
 @testset "ScaledElementPenalty" begin
-    p = L1Penalty()
-    s = scaled(p, .1)
-    x = randn(5)
-    @test value(s, x) ≈ .1 * value(p, x)
-    @test deriv(s, x[1]) ≈ .1 * deriv(p, x[1])
-    @test grad(s, x) ≈ .1 * grad(p, x)
-    @test prox(s, x) ≈ prox(p, x, .1)
+    for p in element_penalties
+        s = scaled(p, .1)
+        x = randn(5)
+        @test value(s, x)       ≈ value(p, x, .1)
+        @test deriv(s, x[1])    ≈ deriv(p, x[1], .1)
+        @test grad(s, x)        ≈ grad(p, x, .1)
+        @test prox(s, x)        ≈ prox(p, x, .1)
+    end
 
     p = ElasticNetPenalty(.7)
     s = scaled(p, .2)
@@ -111,6 +124,9 @@ end
     @test deriv(s, x[1]) ≈ .2 * deriv(p, x[1])
     @test grad(s, x) ≈ .2 * grad(p, x)
     @test prox(s, x) ≈ prox(p, x, .2)
+    @test prox(s, x[1]) ≈ prox(p, x[1], .2)
+
+    @test_throws ArgumentError scaled(p, -1.)
 end
 @testset "ArrayPenalty" begin
     @testset "NuclearNormPenalty" begin
@@ -127,6 +143,9 @@ end
         s = .05
         @test value(p, Θ) ≈ vecnorm(Θ)
         prox!(p, Θ, s)
+
+        Θ = .01 * ones(10)
+        prox!(p, Θ, 10.) == zeros(10)
     end
     @testset "MahalanobisPenalty" begin
         C = randn(5, 10)

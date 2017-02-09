@@ -19,7 +19,7 @@ export
             MahalanobisPenalty,
     addgrad
 
-typealias AA AbstractArray
+typealias AA{T, N} AbstractArray{T, N}
 
 
 # common functions

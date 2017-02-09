@@ -29,13 +29,14 @@ grad{T}(p::ElementPenalty, θ::AA{T}, s::T)          = grad!(similar(θ), p, θ,
 grad{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})      = grad!(similar(θ), p, θ, s)
 grad!{T}(storage::AA{T}, p::ElementPenalty, θ::AA{T}) = map!(x -> deriv(p, x), storage, θ)
 function grad!{T}(storage::AA{T}, p::ElementPenalty, θ::AA{T}, s::T)
-    grad!(storage, p, θ)
-    scale!(storage, s)
+    map!(x -> deriv(p, x, s), storage, θ)
 end
 function grad!{T}(storage::AA{T}, p::ElementPenalty, θ::AA{T}, s::AA{T})
-    @assert size(θ) == size(s)
-    grad!(storage, p, θ)
-    storage .*= s
+    @assert size(storage) == size(θ) == size(s)
+    for j in eachindex(θ)
+        @inbounds storage[j] = deriv(p, θ[j], s[j])
+    end
+    storage
 end
 
 addgrad{T}(∇j::T, p::ElementPenalty, θj::T) = ∇j + deriv(p, θj)
@@ -113,7 +114,7 @@ immutable SCADPenalty{T <: Number} <: ElementPenalty
 end
 SCADPenalty(a::Number = 3.7) = (@assert a > 2; SCADPenalty(a))
 name(p::SCADPenalty) = "SCADPenalty($(p.a))"
-function value{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
+function value{T}(p::SCADPenalty{T}, θ::T, λ::T)
     absθ = abs(θ)
     if absθ < λ
         return λ * absθ
@@ -123,7 +124,7 @@ function value{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
         return T(0.5) * (p.a + 1) * λ * λ
     end
 end
-function deriv{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
+function deriv{T}(p::SCADPenalty{T}, θ::T, λ::T)
     absθ = abs(θ)
     if absθ < λ
         return λ * sign(θ)
@@ -133,7 +134,7 @@ function deriv{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
         return zero(T)
     end
 end
-function prox{T <: Number}(p::SCADPenalty{T}, θ::T, λ::T)
+function prox{T}(p::SCADPenalty{T}, θ::T, λ::T)
     absθ = abs(θ)
     if absθ < 2λ
         return prox(L1Penalty(), θ, λ)
@@ -147,13 +148,17 @@ end
 
 
 #--------------------------------------------------------------------------------# scaled
-_scaled_error() = throw(ArgumentError("Scale factor λ has to be strictly positive."))
+function _scale_check(λ)
+    typeof(λ) <: Number || throw(ArgumentError("Scale factor λ must be a Number"))
+    λ >= 0 || throw(ArgumentError("Scale factor λ has to be strictly positive."))
+end
+
 immutable ScaledElementPenalty{P <: ElementPenalty, λ} <: ElementPenalty
     penalty::P
-    ScaledElementPenalty(pen::P) = typeof(λ) <: Number ? new(pen) : _scaled_error()
+    ScaledElementPenalty(pen::P) = (_scale_check(λ); new(pen))
 end
 ScaledElementPenalty{P, λ}(pen::P, ::Type{Val{λ}}) = ScaledElementPenalty{P,λ}(pen)
-Base.show{P, λ}(io::IO, sp::ScaledElementPenalty{P, λ}) = println(io, "$λ * ", sp.penalty)
+Base.show{P, λ}(io::IO, sp::ScaledElementPenalty{P, λ}) = print(io, "$λ * ", sp.penalty)
 
 scaled(p::ElementPenalty, λ::Number) = ScaledElementPenalty(p, Val{λ})
 

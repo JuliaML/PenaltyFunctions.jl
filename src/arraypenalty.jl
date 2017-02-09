@@ -66,10 +66,10 @@ end
 #--------------------------------------------------------------------------------# scaled
 immutable ScaledArrayPenalty{P <: ArrayPenalty, λ} <: ArrayPenalty
     penalty::P
-    ScaledArrayPenalty(pen::P) = typeof(λ) <: Number ? new(pen) : _scaled_error()
+    ScaledArrayPenalty(pen::P) = (_scale_check(λ); new(pen))
 end
 ScaledArrayPenalty{P, λ}(pen::P, ::Type{Val{λ}}) = ScaledArrayPenalty{P,λ}(pen)
-Base.show{P, λ}(io::IO, sp::ScaledArrayPenalty{P, λ}) = println(io, "$λ * ", sp.penalty)
+Base.show{P, λ}(io::IO, sp::ScaledArrayPenalty{P, λ}) = print(io, "$λ * ", sp.penalty)
 
 scaled(p::ArrayPenalty, λ::Number) = ScaledArrayPenalty(p, Val{λ})
 
