@@ -3,6 +3,9 @@ __precompile__(true)
 module PenaltyFunctions
 
 importall LearnBase
+# export LearnBase
+eval(Expr(:toplevel, Expr(:export, setdiff(names(LearnBase), [:LearnBase])...)))
+
 using RecipesBase
 
 export
