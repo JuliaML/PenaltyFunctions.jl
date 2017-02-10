@@ -2,6 +2,7 @@
 Penalties that are applied to the entire parameter array only
 """
 abstract ArrayPenalty <: Penalty
+name(p::ArrayPenalty) = replace(string(typeof(p)), "PenaltyFunctions.", "")
 
 #------------------------------------------------------------------# abstract methods
 value{T <: Number}(p::ArrayPenalty, A::AA{T}, λ::T) = λ * value(p, A)
