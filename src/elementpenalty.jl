@@ -2,7 +2,7 @@
 Penalties that are applied element-wise.
 """
 abstract ElementPenalty <: Penalty
-abstract ConvexElementPenalty <: Penalty  # only convex penalties have prox
+abstract ConvexElementPenalty <: ElementPenalty  # only convex penalties have prox
 
 #-------------------------------------------------------------------------------# methods
 value{T}(p::ElementPenalty, θ::T, s::T)     = s * value(p, θ)
@@ -103,9 +103,10 @@ ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 
 `g(θ) = α * abs(θ) + (1 - α) * .5 * θ ^ 2`
 """
-immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty α::T end
+immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty
+    α::T
+end
 ElasticNetPenalty(α::Number) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
-name(p::ElasticNetPenalty) = "ElasticNetPenalty($(p.α))"
 for f in [:value, :deriv]
     @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
         p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
@@ -125,7 +126,6 @@ LogPenalty(η)
 immutable LogPenalty{T <: Number} <: ElementPenalty
     η::T
 end
-name(p::LogPenalty) = "LogPenalty($(p.η))"
 LogPenalty(η::Number) = (@assert η > 0; LogPenalty(η))
 value{T}(p::LogPenalty{T}, θ::T) = log(1 + p.η * abs(θ))
 deriv{T}(p::LogPenalty{T}, θ::T) = p.η * sign(θ) / (1 + p.η * abs(θ))
@@ -140,7 +140,6 @@ immutable SCADPenalty{T <: Number} <: ElementPenalty
     a::T
 end
 SCADPenalty(a::Number = 3.7) = (@assert a > 2; SCADPenalty(a))
-name(p::SCADPenalty) = "SCADPenalty($(p.a))"
 function value{T}(p::SCADPenalty{T}, θ::T, λ::T)
     absθ = abs(θ)
     if absθ < λ
@@ -180,7 +179,6 @@ MCPPenalty(γ) (MC+)
 immutable MCPPenalty{T <: Number} <: ElementPenalty
     γ::T  # In paper, this is λ * γ
 end
-name(p::MCPPenalty) = "MCPPenalty($(p.γ))"
 MCPPenalty(γ::Number = 2.0) = (@assert γ > 0; MCPPenalty(γ))
 function value{T}(p::MCPPenalty{T}, θ::T)
     t = abs(θ)

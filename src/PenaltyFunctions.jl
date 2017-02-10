@@ -26,11 +26,8 @@ export
 
 typealias AA{T, N} AbstractArray{T, N}
 
-const ϵ = 1e-6 # avoid dividing by 0, etc.
-
 
 # common functions
-
 soft_thresh{T<:Number}(x::T, λ::T) = max(zero(T), x - sign(x) * λ)
 
 function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
@@ -42,7 +39,20 @@ end
 
 function name(p::Penalty)
     s = replace(string(typeof(p)), "PenaltyFunctions.", "")
-
+    # s = replace(s, r"\{(.*)", "")
+    f = fieldnames(p)
+    flength = length(f)
+    if flength > 0
+        s *= "("
+        for (i, field) in enumerate(f)
+            s *= "$field = $(getfield(p, field))"
+            if i < flength
+                s *= ", "
+            end
+        end
+        s *= ")"
+    end
+    s
 end
 Base.show(io::IO, p::Penalty) = print(io, name(p))
 
