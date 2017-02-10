@@ -49,6 +49,9 @@ end
         prox(L2Penalty(), prox(L1Penalty(), θ, .4s), .6s)
     )
 
+    test_element_penalty(LogPenalty(1.0), θ, s, log(1 + θ), 1 / (1 + θ), nothing)
+    test_element_penalty(MCPPenalty(2.0), 1.0, s, 1 - 1/4, 1 - 1/2, nothing)
+    test_element_penalty(MCPPenalty(1.0), 2.0, s, 1/2, 0.0, nothing)
 
     @testset "SCADPenalty" begin
         @test value(SCADPenalty(3.8, .2), .1) ≈ .02

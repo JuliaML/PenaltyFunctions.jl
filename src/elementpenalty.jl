@@ -106,7 +106,7 @@ ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty
     α::T
 end
-ElasticNetPenalty(α::Number) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
+ElasticNetPenalty(α::Number = 0.5) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
 for f in [:value, :deriv]
     @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
         p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
@@ -126,7 +126,7 @@ LogPenalty(η)
 immutable LogPenalty{T <: Number} <: ElementPenalty
     η::T
 end
-LogPenalty(η::Number) = (@assert η > 0; LogPenalty(η))
+LogPenalty(η::Number = 1.0) = (@assert η > 0; LogPenalty(η))
 value{T}(p::LogPenalty{T}, θ::T) = log(1 + p.η * abs(θ))
 deriv{T}(p::LogPenalty{T}, θ::T) = p.η * sign(θ) / (1 + p.η * abs(θ))
 
@@ -192,9 +192,6 @@ end
 function deriv{T}(p::MCPPenalty{T}, θ::T)
     t = abs(θ)
     t < p.γ ? sign(θ) * (1 - t / p.γ): 0.0
-end
-function prox{T}(p::MCPPenalty{T}, θ::T)
-    error("???")
 end
 
 
