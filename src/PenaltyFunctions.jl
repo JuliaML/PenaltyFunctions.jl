@@ -16,6 +16,8 @@ export
             L2Penalty,
             ElasticNetPenalty,
             SCADPenalty,
+            MCPPenalty,
+            LogPenalty,
         ArrayPenalty,
             NuclearNormPenalty,
             GroupLassoPenalty,
@@ -24,8 +26,11 @@ export
 
 typealias AA{T, N} AbstractArray{T, N}
 
+const ϵ = 1e-6 # avoid dividing by 0, etc.
+
 
 # common functions
+
 soft_thresh{T<:Number}(x::T, λ::T) = max(zero(T), x - sign(x) * λ)
 
 function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
@@ -35,7 +40,10 @@ function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
     x
 end
 
-name(p::Penalty) = replace(string(typeof(p)), "PenaltyFunctions.", "")
+function name(p::Penalty)
+    s = replace(string(typeof(p)), "PenaltyFunctions.", "")
+
+end
 Base.show(io::IO, p::Penalty) = print(io, name(p))
 
 include("elementpenalty.jl")

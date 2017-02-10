@@ -2,6 +2,7 @@
 Penalties that are applied element-wise.
 """
 abstract ElementPenalty <: Penalty
+abstract ConvexElementPenalty <: Penalty  # only convex penalties have prox
 
 #-------------------------------------------------------------------------------# methods
 value{T}(p::ElementPenalty, θ::T, s::T)     = s * value(p, θ)
@@ -12,16 +13,16 @@ function value{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})
     sum(map((x,y) -> value(p, x, y), θ, s))
 end
 
-prox!{T}(p::ElementPenalty, θ::AA{T}, s::T) = map!(θj -> prox(p, θj, s), θ)
-function prox!{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})
+prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::T) = map!(θj -> prox(p, θj, s), θ)
+function prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::AA{T})
     @assert size(θ) == size(s)
     for i in eachindex(θ)
         @inbounds θ[i] = prox(p, θ[i], s[i])
     end
     θ
 end
-prox{T}(p::ElementPenalty, θ::AA{T}, s::T)      = prox!(p, copy(θ), s)
-prox{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})  = prox!(p, copy(θ), s)
+prox{T}(p::ConvexElementPenalty, θ::AA{T}, s::T)      = prox!(p, copy(θ), s)
+prox{T}(p::ConvexElementPenalty, θ::AA{T}, s::AA{T})  = prox!(p, copy(θ), s)
 
 deriv{T}(p::ElementPenalty, θ::T, s::T) = s * deriv(p, θ)
 grad{T}(p::ElementPenalty, θ::AA{T})                = grad!(similar(θ), p, θ)
@@ -66,32 +67,43 @@ end
 #----------------------------------------------------------------------# ElementPenalties
 """
 Unpenalized
+
+`g(θ) = 0`
 """
-immutable NoPenalty <: ElementPenalty end
+immutable NoPenalty <: ConvexElementPenalty end
 value(p::NoPenalty, θ::Number) = zero(θ)
 deriv(p::NoPenalty, θ::Number) = zero(θ)
 prox{T <: Number}(p::NoPenalty, θ::T, s::T) = θ
 
+
 """
 L1Penalty aka LASSO
+
+`g(θ) = abs(θ)`
 """
-immutable L1Penalty <: ElementPenalty end
+immutable L1Penalty <: ConvexElementPenalty end
 value(p::L1Penalty, θ::Number) = abs(θ)
 deriv(p::L1Penalty, θ::Number) = sign(θ)
 prox{T <: Number}(p::L1Penalty, θ::T, s::T) = soft_thresh(θ, s)
 
+
 """
 L2Penalty aka Ridge
+
+`g(θ) = .5 * θ ^ 2`
 """
-immutable L2Penalty <: ElementPenalty end
+immutable L2Penalty <: ConvexElementPenalty end
 value(p::L2Penalty, θ::Number) = typeof(θ)(0.5) * θ * θ
 deriv(p::L2Penalty, θ::Number) = θ
 prox{T <: Number}(p::L2Penalty, θ::T, s::T) = θ / (one(T) + s)
 
+
 """
 ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
+
+`g(θ) = α * abs(θ) + (1 - α) * .5 * θ ^ 2`
 """
-immutable ElasticNetPenalty{T <: Number} <: ElementPenalty α::T end
+immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty α::T end
 ElasticNetPenalty(α::Number) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
 name(p::ElasticNetPenalty) = "ElasticNetPenalty($(p.α))"
 for f in [:value, :deriv]
@@ -104,7 +116,22 @@ function prox{T <: Number}(p::ElasticNetPenalty{T}, θ::T, s::T)
     soft_thresh(θ, αs) / (one(T) + s - αs)
 end
 
-#-----------------------------------------------------------------------# SCADPenalty
+
+"""
+LogPenalty(η)
+
+`g(θ) = log(1 + η * θ)`
+"""
+immutable LogPenalty{T <: Number} <: ElementPenalty
+    η::T
+end
+name(p::LogPenalty) = "LogPenalty($(p.η))"
+LogPenalty(η::Number) = (@assert η > 0; LogPenalty(η))
+value{T}(p::LogPenalty{T}, θ::T) = log(1 + p.η * abs(θ))
+deriv{T}(p::LogPenalty{T}, θ::T) = p.η * sign(θ) / (1 + p.η * abs(θ))
+
+
+
 # http://www.pstat.ucsb.edu/student%20seminar%20doc/SCAD%20Jian%20Shi.pdf
 """
 Smoothly Clipped Absolute Deviation Penalty
@@ -144,6 +171,38 @@ function prox{T}(p::SCADPenalty{T}, θ::T, λ::T)
         return θ
     end
 end
+
+
+# https://arxiv.org/abs/1002.4734
+"""
+MCPPenalty(γ) (MC+)
+"""
+immutable MCPPenalty{T <: Number} <: ElementPenalty
+    γ::T  # In paper, this is λ * γ
+end
+name(p::MCPPenalty) = "MCPPenalty($(p.γ))"
+MCPPenalty(γ::Number = 2.0) = (@assert γ > 0; MCPPenalty(γ))
+function value{T}(p::MCPPenalty{T}, θ::T)
+    t = abs(θ)
+    t < p.γ ? t - t^2 / (2 * p.γ) : T(0.5) * p.γ
+end
+function deriv{T}(p::MCPPenalty{T}, θ::T)
+    t = abs(θ)
+    t < p.γ ? sign(θ) * (1 - t / p.γ): 0.0
+end
+function prox{T}(p::MCPPenalty{T}, θ::T)
+    error("???")
+end
+
+
+
+
+
+
+
+
+
+
 
 
 
