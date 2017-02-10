@@ -1,5 +1,5 @@
 module Tests
-using LearnBase, PenaltyFunctions, Base.Test
+using PenaltyFunctions, Base.Test
 P = PenaltyFunctions
 
 
