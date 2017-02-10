@@ -7,7 +7,7 @@ using RecipesBase
 
 export
     Penalty,
-        ElementwisePenalty,
+        ElementPenalty,
             NoPenalty,
             L1Penalty,
             L2Penalty,
@@ -16,28 +16,25 @@ export
         ArrayPenalty,
             NuclearNormPenalty,
             GroupLassoPenalty,
-            MahalanobisPenalty
+            MahalanobisPenalty,
+    addgrad
 
 typealias AA{T, N} AbstractArray{T, N}
 
-abstract ElementwisePenalty <: Penalty
-abstract ArrayPenalty <: Penalty
-
 
 # common functions
-soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(T), abs(x) - λ)
+soft_thresh{T<:Number}(x::T, λ::T) = max(zero(T), x - sign(x) * λ)
+
 function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
     for i in eachindex(x)
         @inbounds x[i] = soft_thresh(x[i], λ)
     end
     x
 end
-function name(p::Penalty)
-    s = replace(string(p), "PenaltyFunctions.", "")
-    s = replace(s, r"\{.+", "")
-    s * "(lambda = $(p.λ))"
-end
 
-include("elementwise.jl")
-include("array.jl")
+name(p::Penalty) = replace(string(typeof(p)), "PenaltyFunctions.", "")
+Base.show(io::IO, p::Penalty) = print(io, name(p))
+
+include("elementpenalty.jl")
+include("arraypenalty.jl")
 end
