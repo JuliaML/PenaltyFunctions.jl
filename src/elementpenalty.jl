@@ -138,38 +138,43 @@ Smoothly Clipped Absolute Deviation Penalty
 """
 immutable SCADPenalty{T <: Number} <: ElementPenalty
     a::T
+    γ::T
 end
-SCADPenalty(a::Number = 3.7) = (@assert a > 2; SCADPenalty(a))
-function value{T}(p::SCADPenalty{T}, θ::T, λ::T)
+function SCADPenalty(a::Number = 3.7, γ::Number = 1.0)
+    @assert a > 2
+    @assert γ > 0
+    SCADPenalty(a)
+end
+function value{T}(p::SCADPenalty{T}, θ::T)
     absθ = abs(θ)
-    if absθ < λ
-        return λ * absθ
-    elseif absθ <= λ * p.a
-        return -T(0.5) * (absθ ^ 2 - 2 * p.a * λ * absθ + λ ^ 2) / (p.a - one(T))
+    if absθ < p.γ
+        return p.γ * absθ
+    elseif absθ <= p.γ * p.a
+        return -T(0.5) * (absθ ^ 2 - 2 * p.a * p.γ * absθ + p.γ ^ 2) / (p.a - one(T))
     else
-        return T(0.5) * (p.a + 1) * λ * λ
+        return T(0.5) * (p.a + 1) * p.γ * p.γ
     end
 end
-function deriv{T}(p::SCADPenalty{T}, θ::T, λ::T)
+function deriv{T}(p::SCADPenalty{T}, θ::T)
     absθ = abs(θ)
-    if absθ < λ
-        return λ * sign(θ)
-    elseif absθ <= λ * p.a
-        return -(absθ - p.a * λ * sign(θ)) / (p.a - 1)
+    if absθ < p.γ
+        return p.γ * sign(θ)
+    elseif absθ <= p.γ * p.a
+        return -(absθ - p.a * p.γ * sign(θ)) / (p.a - 1)
     else
         return zero(T)
     end
 end
-function prox{T}(p::SCADPenalty{T}, θ::T, λ::T)
-    absθ = abs(θ)
-    if absθ < 2λ
-        return prox(L1Penalty(), θ, λ)
-    elseif absθ <= λ * p.a
-        return prox(L1Penalty(), θ, λ * p.a / (p.a - 1)) * (p.a - 1) / (p.a - 2)
-    else
-        return θ
-    end
-end
+# function prox{T}(p::SCADPenalty{T}, θ::T, λ::T)
+#     absθ = abs(θ)
+#     if absθ < 2λ
+#         return prox(L1Penalty(), θ, λ)
+#     elseif absθ <= λ * p.a
+#         return prox(L1Penalty(), θ, λ * p.a / (p.a - 1)) * (p.a - 1) / (p.a - 2)
+#     else
+#         return θ
+#     end
+# end
 
 
 # https://arxiv.org/abs/1002.4734
