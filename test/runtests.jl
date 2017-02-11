@@ -3,8 +3,9 @@ using PenaltyFunctions, Base.Test
 P = PenaltyFunctions
 
 
-element_penalties = [NoPenalty(), L1Penalty(), L2Penalty(), ElasticNetPenalty(.7),
-                     SCADPenalty(3.7)]
+element_penalties = [NoPenalty(), L1Penalty(), L2Penalty(),
+                     ElasticNetPenalty(.7), MCPPenalty(1.),
+                     LogPenalty(1.), SCADPenalty(3.7)]
 array_penalties = [NuclearNormPenalty(), GroupLassoPenalty(),
                    MahalanobisPenalty(rand(3,2))]
 
@@ -76,6 +77,9 @@ end
             @test grad(p, θ)            ≈ sign.(θ)
             @test grad(p, θ, s[1])      ≈ s[1] * sign.(θ)
             @test grad(p, θ, s)         ≈ s .* sign.(θ)
+            @test deriv.(p, θ)       == grad(p, θ)
+            @test deriv.(p, θ, s[1]) == grad(p, θ, s[1])
+            @test deriv.(p, θ, s)    == grad(p, θ, s)
 
             buffer = rand(10)
             grad!(buffer, p, θ); @test buffer       ≈ sign.(θ)
@@ -107,6 +111,7 @@ end
         end
     end
 end
+
 @testset "ScaledElementPenalty" begin
     for p in element_penalties
         s = scaled(p, .1)
@@ -114,7 +119,7 @@ end
         @test value(s, x)       ≈ value(p, x, .1)
         @test deriv(s, x[1])    ≈ deriv(p, x[1], .1)
         @test grad(s, x)        ≈ grad(p, x, .1)
-        if !(typeof(p) <: SCADPenalty)
+        if typeof(p) <: ConvexElementPenalty
             @test prox(s, x)        ≈ prox(p, x, .1)
         end
     end
@@ -125,11 +130,13 @@ end
     @test value(s, x) ≈ .2 * value(p, x)
     @test deriv(s, x[1]) ≈ .2 * deriv(p, x[1])
     @test grad(s, x) ≈ .2 * grad(p, x)
+    @test deriv.(s, x) ≈ .2 * deriv.(p, x)
     @test prox(s, x) ≈ prox(p, x, .2)
     @test prox(s, x[1]) ≈ prox(p, x[1], .2)
 
     @test_throws ArgumentError scaled(p, -1.)
 end
+
 @testset "ArrayPenalty" begin
     @testset "NuclearNormPenalty" begin
         p = NuclearNormPenalty()

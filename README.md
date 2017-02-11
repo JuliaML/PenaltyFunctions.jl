@@ -87,6 +87,7 @@ buffer = zeros(5)
 # value
 value(p, x[1])        # evaluate on element
 value(p, x)           # evaluate on array
+value.(p, x)          # broadcast is supported as well
 value(p, x[1], s[1])  # evaluate on element, scaled by scalar
 value(p, x, s[1])     # evaluate on array, scaled by scalar
 value(p, x, s)        # evaluate on array, element-wise scaling
