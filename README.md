@@ -1,34 +1,81 @@
 # PenaltyFunctions
 
+_PenaltyFunctions.jl is a Julia package that provides generic
+implementations for a diverse set of penalty functions that are
+commonly used for regularization purposes in Machine Learning._
+
 | **Package Status** | **Package Evaluator** | **Build Status** |
 |:------------------:|:---------------------:|:----------------:|
-| [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | | [![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaML/PenaltyFunctions.jl/badge.svg?branch=josh)](https://coveralls.io/github/JuliaML/PenaltyFunctions.jl?branch=josh)|
-
+| [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | [![Pkg Eval 0.5](http://pkg.julialang.org/badges/PenaltyFunctions_0.5.svg)](http://pkg.julialang.org/?pkg=PenaltyFunctions) [![Pkg Eval 0.6](http://pkg.julialang.org/badges/PenaltyFunctions_0.6.svg)](http://pkg.julialang.org/?pkg=PenaltyFunctions) | [![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl) [![Build status](https://ci.appveyor.com/api/projects/status/7fcsct29x3m6f4n1?svg=true)](https://ci.appveyor.com/project/Evizero/penaltyfunctions-jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaML/PenaltyFunctions.jl/badge.svg?branch=josh)](https://coveralls.io/github/JuliaML/PenaltyFunctions.jl?branch=josh) |
 
 ## Introduction
-PenaltyFunctions is a collection of types for regularization in machine learning.
+
+Many popular models in Machine Learning are parameterized by a
+set of real-valued coefficients `θ` (theta), which is usually
+stored in the form of an array. If our data set has `k` features,
+then `θ` would typically be a vector of `k` or `k+1` numeric
+elements. Each individual feature `x_i` of our data set is
+assigned a corresponding coefficient `θ_i`, which is used to
+quantify the feature's influence on the prediction. The concrete
+values for the coefficient vector are learned by an optimization
+algorithm, which tries to select the "best" set of coefficients
+for the given data and model. Without any restriction on their
+values the optimization algorithm is free to choose the
+coefficients freely, which may result in overly complex
+prediction functions. This freedom is known to cause the
+optimization algorithm to overfit to the noise in the training
+data. This is where penalties come in!
+
+A penalty is a function of the coefficients and only the
+coefficients. It associates the given set of coefficients with a
+cost without any regard for their influence on the predictive
+power of the prediction function. This cost is then is added to
+the overall cost of the prediction function. This way the
+optimization algorithm is encouraged to choose "simpler"
+coefficients. What exactly "simpler" means depends on the chosen
+penalty. In general terms: penalties help to reduce the
+possibility of overfitting.
 
 ## Available Penalties
 
-
+This package implements a number of carefully crafted penalty
+functions, as well as an API to query their properties (e.g.
+convexity). Furthermore, we expose methods to compute their
+values and derivatives for a single value, coefficient vectors,
+and even arrays of arbitrary dimensionality. The provided penalty
+functions fall into one of two main families, namely **Element
+Penalties** and **Array Penalties**.
 
 ### Element Penalties
-*Penalties that apply to the parameter element-wise*
 
-![](https://cloud.githubusercontent.com/assets/8075494/22839303/d5269fe6-ef96-11e6-8c27-29b52d5e4499.png)
+The first family of penalty functions contains all those that
+apply to to the individual elements of `θ` element-wise. The
+resulting cost of a coefficient array is then the sum of the
+element-wise results.
 
-An `ElementPenalty` has the form `sum(g, θ)`
+**Univariate Parameter** | **Bivariate Parameter**
+:-----------------------:|:-----------------------:
+![univariate_elem](https://rawgithub.com/JuliaML/FileStorage/master/PenaltyFunctions/univariate.svg) | ![bivariate_elem](https://rawgithub.com/JuliaML/FileStorage/master/PenaltyFunctions/bivariate.svg)
+The cost-values of various penalties as a function of a single coefficient | Cross sections of the cost-surfaces. This time for two coefficients
+
+Every penalty that is of this family is subtype of
+`ElementPenalty`. From an implementation perspective these
+penalties are defined using the element-wise functions. The
+following table lists the implemented types and their
+definitions.
 
 Penalty       | value on element
 --------------|-----------------
 `NoPenalty()` | `g(θ) = 0`
 `L1Penalty()` | `g(θ) = abs(θ)`
-`L2Penalty()` | `g(θ) = .5 * θ ^ 2`
-`ElasticNetPenalty(α = 0.5)` | `g(θ) = (1 - α) * abs(θ) + α * .5 * θ ^ 2`
+`L2Penalty()` | `g(θ) = 0.5 * θ ^ 2`
+`ElasticNetPenalty(α = 0.5)` | `g(θ) = (1 - α) * abs(θ) + α * 1.5 * θ ^ 2`
 `SCADPenalty(a = 3.7, γ = 1.0)` | `L1Penalty that blends to constant`
 `MCPPenalty(γ = 2.0)` | `g(θ) = abs(θ) < γ ? abs(θ) - θ ^ 2 / 2γ : γ / 2`
 `LogPenalty(η = 1.0)` | `g(θ) = log(1 + η * abs(θ))`
 
+The total cost for an array of coefficients is then defined as
+`sum(g, θ)`.
 
 ```julia
 using PenaltyFunctions
@@ -63,7 +110,12 @@ prox!(p, x, s)      # overwrite x, element-wise scaling
 ```
 
 ### Array Penalties
-*Penalties that need to be evaluated on the entire parameter*
+
+The second family of penalty functions contains all those that
+that need to be evaluated on the entire coefficient array `θ` at
+once. Every penalty that belongs to this family is subtype of
+`ArrayPenalty`. The following table outlines the implemented
+types and their definitions.
 
 Penalty                | value on array
 -----------------------|-----------------
@@ -71,11 +123,17 @@ Penalty                | value on array
 `MahalanobisPenalty(C)`| `g(x) = x' * C' * C * x`
 `GroupLassoPenalty()`  | `g(x) = vecnorm(x)`
 
-
 ## Installation
+
+As of yet this package is not registered in `METADATA.jl`. If you
+would like to try it out you can do so using the following line
+of code.
+
 ```julia
 Pkg.clone("https://github.com/JuliaML/PenaltyFunctions.jl")
 ```
 
 ## License
-This code is free to use under the terms of the MIT license.
+
+This code is free to use under the terms of the MIT "Expat" license.
+
