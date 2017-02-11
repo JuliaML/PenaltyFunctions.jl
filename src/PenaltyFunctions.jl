@@ -59,4 +59,6 @@ Base.show(io::IO, p::Penalty) = print(io, name(p))
 
 include("elementpenalty.jl")
 include("arraypenalty.jl")
+
 end
+

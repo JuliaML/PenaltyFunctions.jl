@@ -4,6 +4,10 @@ Penalties that are applied element-wise.
 abstract ElementPenalty <: Penalty
 abstract ConvexElementPenalty <: ElementPenalty  # only convex penalties have prox
 
+# Make broadcast work for ElementPenalty
+Base.getindex(p::ElementPenalty, idx) = p
+Base.size(::ElementPenalty) = ()
+
 #-------------------------------------------------------------------------------# methods
 value{T}(p::ElementPenalty, θ::T, s::T)     = s * value(p, θ)
 value{T}(p::ElementPenalty, θ::AA{T})       = sum(x -> value(p, x), θ)
