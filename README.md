@@ -15,15 +15,19 @@ PenaltyFunctions is a collection of types for regularization in machine learning
 ### Element Penalties
 *Penalties that apply to the parameter element-wise*
 
-An `ElementPenalty` has the form `sum(g, x)`
+![](https://cloud.githubusercontent.com/assets/8075494/22839303/d5269fe6-ef96-11e6-8c27-29b52d5e4499.png)
+
+An `ElementPenalty` has the form `sum(g, θ)`
 
 Penalty       | value on element
 --------------|-----------------
-`NoPenalty()` | `g(x) = 0`
-`L1Penalty()` | `g(x) = abs(x)`
-`L2Penalty()` | `g(x) = .5 * x ^ 2`
-`ElasticNetPenalty(a)` | `g(x) = (1 - a) * abs(x) + a * .5 * x ^ 2`
-`SCADPenalty(a)` | `L1Penalty that blends to constant`
+`NoPenalty()` | `g(θ) = 0`
+`L1Penalty()` | `g(θ) = abs(θ)`
+`L2Penalty()` | `g(θ) = .5 * θ ^ 2`
+`ElasticNetPenalty(α = 0.5)` | `g(θ) = (1 - α) * abs(θ) + α * .5 * θ ^ 2`
+`SCADPenalty(a = 3.7, γ = 1.0)` | `L1Penalty that blends to constant`
+`MCPPenalty(γ = 2.0)` | `g(θ) = abs(θ) < γ ? abs(θ) - θ ^ 2 / 2γ : γ / 2`
+`LogPenalty(η = 1.0)` | `g(θ) = log(1 + η * abs(θ))`
 
 
 ```julia

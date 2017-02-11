@@ -32,7 +32,9 @@ end
         @testset "$(P.name(p))" begin
             @test value(p, θ)   ≈ v1
             @test deriv(p, θ)   ≈ v2
-            @test prox(p, θ, s) ≈ v3
+            if supertype(typeof(p)) == ConvexElementPenalty
+                @test prox(p, θ, s) ≈ v3
+            end
         end
     end
 
@@ -47,20 +49,18 @@ end
         prox(L2Penalty(), prox(L1Penalty(), θ, .4s), .6s)
     )
 
+    test_element_penalty(LogPenalty(1.0), θ, s, log(1 + θ), 1 / (1 + θ), nothing)
+    test_element_penalty(MCPPenalty(2.0), 1.0, s, 1 - 1/4, 1 - 1/2, nothing)
+    test_element_penalty(MCPPenalty(1.0), 2.0, s, 1/2, 0.0, nothing)
+
     @testset "SCADPenalty" begin
-        p = SCADPenalty(3.8)
+        @test value(SCADPenalty(3.8, .2), .1) ≈ .02
+        @test value(SCADPenalty(3.8, .1), .2) ≈ -.5 * (.2^2 - .2^2 * 3.8 + .01) / (2.8)
+        @test value(SCADPenalty(3.8, .1), 9.) ≈ .5 * 4.8 * .01
 
-        @test value(p, .1, .2) ≈ .02
-        @test value(p, .2, .1) ≈ -.5 * (.2^2 - .2^2 * 3.8 + .01) / (2.8)
-        @test value(p, 9., .1) ≈ .5 * 4.8 * .01
-
-        @test deriv(p, .1, .2) ≈ .2
-        @test deriv(p, .2, .1) ≈ .1 * (3.8 * .1 - .2) / (2.8 * .1)
-        @test deriv(p, 9., .1) ≈ 0.
-
-        @test prox(p, .1, .2) ≈ 0.
-        @test prox(p, .2, .1) ≈ (2.8 * .2 - 3.8 * .1) / 1.8
-        @test prox(p, 9., .1) ≈ 9.
+        @test deriv(SCADPenalty(3.8, .2), .1) ≈ .2
+        @test deriv(SCADPenalty(3.8, .1), .2) ≈ .1 * (3.8 * .1 - .2) / (2.8 * .1)
+        @test deriv(SCADPenalty(3.8, .1), 9.) ≈ 0.
     end
 
     @testset "ElementPenalty methods" begin
@@ -114,7 +114,9 @@ end
         @test value(s, x)       ≈ value(p, x, .1)
         @test deriv(s, x[1])    ≈ deriv(p, x[1], .1)
         @test grad(s, x)        ≈ grad(p, x, .1)
-        @test prox(s, x)        ≈ prox(p, x, .1)
+        if !(typeof(p) <: SCADPenalty)
+            @test prox(s, x)        ≈ prox(p, x, .1)
+        end
     end
 
     p = ElasticNetPenalty(.7)
