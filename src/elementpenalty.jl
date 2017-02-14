@@ -14,7 +14,11 @@ value{T}(p::ElementPenalty, θ::AA{T})       = sum(x -> value(p, x), θ)
 value{T}(p::ElementPenalty, θ::AA{T}, s::T) = sum(x -> value(p, x, s), θ)
 function value{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})
     @assert size(θ) == size(s)
-    sum(map((x,y) -> value(p, x, y), θ, s))
+    result = zero(T)
+    for i in eachindex(θ)
+        @inbounds result += value(p, θ[i], s[i])
+    end
+    result
 end
 
 prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::T) = map!(θj -> prox(p, θj, s), θ)
