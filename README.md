@@ -69,7 +69,7 @@ Penalty       | value on element
 `NoPenalty()` | `g(θ) = 0`
 `L1Penalty()` | `g(θ) = abs(θ)`
 `L2Penalty()` | `g(θ) = 0.5 * θ ^ 2`
-`ElasticNetPenalty(α = 0.5)` | `g(θ) = (1 - α) * abs(θ) + α * 1.5 * θ ^ 2`
+`ElasticNetPenalty(α = 0.5)` | `g(θ) = (1 - α) * abs(θ) + α * .5 * θ ^ 2`
 `SCADPenalty(a = 3.7, γ = 1.0)` | `L1Penalty that blends to constant`
 `MCPPenalty(γ = 2.0)` | `g(θ) = abs(θ) < γ ? abs(θ) - θ ^ 2 / 2γ : γ / 2`
 `LogPenalty(η = 1.0)` | `g(θ) = log(1 + η * abs(θ))`
@@ -137,4 +137,3 @@ Pkg.clone("https://github.com/JuliaML/PenaltyFunctions.jl")
 ## License
 
 This code is free to use under the terms of the MIT "Expat" license.
-
