@@ -29,7 +29,7 @@ typealias AA{T, N} AbstractArray{T, N}
 
 
 # common functions
-soft_thresh{T<:Number}(x::T, λ::T) = max(zero(T), x - sign(x) * λ)
+soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(T), abs(x) - λ)
 
 function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
     for i in eachindex(x)
@@ -61,4 +61,3 @@ include("elementpenalty.jl")
 include("arraypenalty.jl")
 
 end
-
