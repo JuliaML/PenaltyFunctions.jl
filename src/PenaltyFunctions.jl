@@ -25,7 +25,7 @@ export
             MahalanobisPenalty,
     addgrad
 
-typealias AA{T, N} AbstractArray{T, N}
+const AA{T, N} = AbstractArray{T, N}
 
 
 # common functions

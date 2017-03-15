@@ -1,7 +1,7 @@
 """
 Penalties that are applied to the entire parameter array only
 """
-abstract ArrayPenalty <: Penalty
+abstract type ArrayPenalty <: Penalty end
 name(p::ArrayPenalty) = replace(string(typeof(p)), "PenaltyFunctions.", "")
 
 #------------------------------------------------------------------# abstract methods
@@ -65,14 +65,12 @@ end
 
 
 #--------------------------------------------------------------------------------# scaled
-immutable ScaledArrayPenalty{P <: ArrayPenalty, λ} <: ArrayPenalty
+immutable ScaledArrayPenalty{T, P <: ArrayPenalty} <: ArrayPenalty
     penalty::P
-    ScaledArrayPenalty(pen::P) = (_scale_check(λ); new(pen))
+    λ::T
 end
-ScaledArrayPenalty{P, λ}(pen::P, ::Type{Val{λ}}) = ScaledArrayPenalty{P,λ}(pen)
-Base.show{P, λ}(io::IO, sp::ScaledArrayPenalty{P, λ}) = print(io, "$λ * ", sp.penalty)
+scaled(p::ArrayPenalty, λ::Number) = (_scale_check(λ); ScaledArrayPenalty(p, λ))
+Base.show{P, λ}(io::IO, sp::ScaledArrayPenalty{P, λ}) = print(io, "$λ * ($(sp.penalty))")
 
-scaled(p::ArrayPenalty, λ::Number) = ScaledArrayPenalty(p, Val{λ})
-
-value{P, λ}(p::ScaledArrayPenalty{P, λ}, θ::AA) = λ * value(p.penalty, θ)
-prox!{P, λ, T}(p::ScaledArrayPenalty{P, λ}, θ::AA{T}) = prox!(p.penalty, θ, λ)
+value{T}(p::ScaledArrayPenalty{T}, θ::AA{T}) = p.λ * value(p.penalty, θ)
+prox!{T}(p::ScaledArrayPenalty{T}, θ::AA{T}) = prox!(p.penalty, θ, p.λ)

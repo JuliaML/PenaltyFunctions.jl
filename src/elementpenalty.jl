@@ -1,8 +1,8 @@
 """
 Penalties that are applied element-wise.
 """
-abstract ElementPenalty <: Penalty
-abstract ConvexElementPenalty <: ElementPenalty  # only convex penalties have prox
+abstract type ElementPenalty <: Penalty end
+abstract type ConvexElementPenalty <: ElementPenalty end  # only these have prox method
 
 # Make broadcast work for ElementPenalty
 Base.getindex(p::ElementPenalty, idx) = p
@@ -21,7 +21,7 @@ function value{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})
     result
 end
 
-prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::T) = map!(θj -> prox(p, θj, s), θ)
+prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::T) = map!(θj -> prox(p, θj, s), θ, θ)
 function prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::AA{T})
     @assert size(θ) == size(s)
     for i in eachindex(θ)
@@ -114,7 +114,8 @@ ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty
     α::T
 end
-ElasticNetPenalty(α::Number = 0.5) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
+ElasticNetPenalty(α = 0.5) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
+ElasticNetPenalty(α::Integer) = ElasticNetPenalty(Float64(α))
 for f in [:value, :deriv]
     @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
         p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
@@ -134,7 +135,8 @@ LogPenalty(η)
 immutable LogPenalty{T <: Number} <: ElementPenalty
     η::T
 end
-LogPenalty(η::Number = 1.0) = (@assert η > 0; LogPenalty(η))
+LogPenalty(η = 1.0) = (@assert η > 0; LogPenalty(η))
+LogPenalty(η::Integer) = LogPenalty(Float64(η))
 value{T}(p::LogPenalty{T}, θ::T) = log(1 + p.η * abs(θ))
 deriv{T}(p::LogPenalty{T}, θ::T) = p.η * sign(θ) / (1 + p.η * abs(θ))
 
@@ -148,7 +150,7 @@ immutable SCADPenalty{T <: Number} <: ElementPenalty
     a::T
     γ::T
 end
-function SCADPenalty(a::Number = 3.7, γ::Number = 1.0)
+function SCADPenalty(a = 3.7, γ = 1.0)
     @assert a > 2
     @assert γ > 0
     SCADPenalty(a)
@@ -192,7 +194,8 @@ MCPPenalty(γ) (MC+)
 immutable MCPPenalty{T <: Number} <: ElementPenalty
     γ::T  # In paper, this is λ * γ
 end
-MCPPenalty(γ::Number = 2.0) = (@assert γ > 0; MCPPenalty(γ))
+MCPPenalty(γ = 2.0) = (@assert γ > 0; MCPPenalty(γ))
+MCPPenalty(γ::Integer) = MCPPenalty(Float64(γ))
 function value{T}(p::MCPPenalty{T}, θ::T)
     t = abs(θ)
     t < p.γ ? t - t^2 / (2 * p.γ) : T(0.5) * p.γ
@@ -216,28 +219,27 @@ end
 
 #--------------------------------------------------------------------------------# scaled
 function _scale_check(λ)
-    typeof(λ) <: Number || throw(ArgumentError("Scale factor λ must be a Number"))
+    isa(λ, Number) || throw(ArgumentError("Scale factor λ must be a Number"))
     λ >= 0 || throw(ArgumentError("Scale factor λ has to be strictly positive."))
 end
 
-immutable ScaledElementPenalty{P <: ElementPenalty, λ} <: ElementPenalty
+immutable ScaledElementPenalty{T, P <: ElementPenalty} <: ElementPenalty
     penalty::P
-    ScaledElementPenalty(pen::P) = (_scale_check(λ); new(pen))
+    λ::T
 end
-ScaledElementPenalty{P, λ}(pen::P, ::Type{Val{λ}}) = ScaledElementPenalty{P,λ}(pen)
-Base.show{P, λ}(io::IO, sp::ScaledElementPenalty{P, λ}) = print(io, "$λ * ", sp.penalty)
+scaled(p::ElementPenalty, λ::Number) = (_scale_check(λ); ScaledElementPenalty(p, λ))
+Base.show(io::IO, sp::ScaledElementPenalty) = print(io, "$(sp.λ) * ($(sp.penalty))")
 
-scaled(p::ElementPenalty, λ::Number) = ScaledElementPenalty(p, Val{λ})
 
-value{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = λ * value(p.penalty, θ)
-deriv{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = λ * deriv(p.penalty, θ)
-prox{P, λ}(p::ScaledElementPenalty{P, λ}, θ::Number) = prox(p.penalty, θ, λ)
-prox{P, λ, T}(p::ScaledElementPenalty{P, λ}, θ::AA{T}) = prox(p.penalty, θ, λ)
+value{T}(p::ScaledElementPenalty{T}, θ::T) = p.λ * value(p.penalty, θ)
+deriv{T}(p::ScaledElementPenalty{T}, θ::T) = p.λ * deriv(p.penalty, θ)
+prox{T}(p::ScaledElementPenalty{T}, θ::T) = prox(p.penalty, θ, p.λ)
+prox{T}(p::ScaledElementPenalty{T}, θ::AA{T}) = prox(p.penalty, θ, p.λ)
 
 # SCAD is special
 for f in [:value, :deriv]
-    @eval function ($f){P <: SCADPenalty, λ}(p::ScaledElementPenalty{P, λ}, θ::Number)
-        ($f)(p.penalty, θ, λ)
+    @eval function ($f){P <: SCADPenalty, T}(p::ScaledElementPenalty{T, P}, θ::T)
+        ($f)(p.penalty, θ, p.λ)
     end
 end
 
