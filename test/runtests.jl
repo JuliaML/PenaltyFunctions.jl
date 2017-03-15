@@ -12,15 +12,14 @@ array_penalties = [NuclearNormPenalty(), GroupLassoPenalty(),
 penalty_list = vcat(element_penalties, array_penalties)
 
 info("Show methods:")
-@testset "Show" begin
-    for p in penalty_list
-        println(p)
-        println(scaled(p, .1))
-    end
-    println("\n")
+for p in penalty_list
+    print_with_color(:red, "  > $(string(p))\n")
+    print_with_color(:cyan, "  > $(string(scaled(p, .1)))\n")
 end
 
 #---------------------------------------------------------------------------# Begin Tests
+println("\n")
+info("Begin Actual Tests")
 @testset "Common" begin
     @test P.soft_thresh(1.0, 0.5) == 0.5
     @test P.soft_thresh!(ones(5), .5) == .5 * ones(5)
@@ -33,8 +32,11 @@ end
         @testset "$(P.name(p))" begin
             @test value(p, θ)   ≈ v1
             @test deriv(p, θ)   ≈ v2
-            if supertype(typeof(p)) == ConvexElementPenalty
+            @test value.(p, fill(θ, 5)) ≈ fill(v1, 5)
+            @test deriv.(p, fill(θ, 5)) ≈ fill(v2, 5)
+            if isa(p, ConvexElementPenalty)
                 @test prox(p, θ, s) ≈ v3
+                @test prox.(p, fill(θ, 5), s) ≈ fill(v3, 5)
             end
         end
     end
