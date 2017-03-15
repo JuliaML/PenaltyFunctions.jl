@@ -61,6 +61,9 @@ end
         LogPenalty(1.0)
         @test_throws Exception LogPenalty(-1.0)
 
+        MCPPenalty()
+        MCPPenalty(1.0)
+        @test_throws Exception MCPPenalty(-1.0)
     end
 
     test_element_penalty(NoPenalty(), θ, s, 0.0, 0.0, θ)
