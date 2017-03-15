@@ -70,7 +70,8 @@ immutable ScaledArrayPenalty{T, P <: ArrayPenalty} <: ArrayPenalty
     λ::T
 end
 scaled(p::ArrayPenalty, λ::Number) = (_scale_check(λ); ScaledArrayPenalty(p, λ))
-Base.show{P, λ}(io::IO, sp::ScaledArrayPenalty{P, λ}) = print(io, "$λ * ($(sp.penalty))")
+
+Base.show(io::IO, sp::ScaledArrayPenalty) = print(io, "$(sp.λ) * ($(sp.penalty))")
 
 value{T}(p::ScaledArrayPenalty{T}, θ::AA{T}) = p.λ * value(p.penalty, θ)
 prox!{T}(p::ScaledArrayPenalty{T}, θ::AA{T}) = prox!(p.penalty, θ, p.λ)
