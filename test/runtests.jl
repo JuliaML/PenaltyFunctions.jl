@@ -43,6 +43,26 @@ end
 
     θ, s = rand(), rand()
 
+    @testset "Constructors" begin
+        NoPenalty()
+        L1Penalty()
+        L2Penalty()
+
+        ElasticNetPenalty()
+        ElasticNetPenalty(1.0)
+
+        SCADPenalty()
+        SCADPenalty(4.0)
+        SCADPenalty(4.0, 1.0)
+        @test_throws Exception SCADPenalty(1.0)
+        @test_throws Exception SCADPenalty(3.7, -1.)
+
+        LogPenalty()
+        LogPenalty(1.0)
+        @test_throws Exception LogPenalty(-1.0)
+
+    end
+
     test_element_penalty(NoPenalty(), θ, s, 0.0, 0.0, θ)
     test_element_penalty(L1Penalty(), θ, s, abs(θ), sign(θ), max(0.0, θ - sign(θ) * s))
     test_element_penalty(L2Penalty(), θ, s, .5 * θ^2, θ, θ / (1 + s))
