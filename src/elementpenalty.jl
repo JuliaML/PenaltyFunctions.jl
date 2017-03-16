@@ -113,9 +113,11 @@ ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 """
 immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty
     α::T
+    function ElasticNetPenalty(α::T = 0.5) where T <: Number
+        0 <= α <= 1 || throw(ArgumentError("α must be in [0, 1]"))
+        new{T}(α)
+    end
 end
-ElasticNetPenalty(α = 0.5) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
-ElasticNetPenalty(α::Integer) = ElasticNetPenalty(Float64(α))
 for f in [:value, :deriv]
     @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
         p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
