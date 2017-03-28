@@ -113,9 +113,11 @@ ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 """
 immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty
     α::T
+    function ElasticNetPenalty(α::T = 0.5) where T <: Number
+        0 <= α <= 1 || throw(ArgumentError("α must be in [0, 1]"))
+        new{T}(α)
+    end
 end
-ElasticNetPenalty(α = 0.5) = (@assert 0 <= α <= 1; ElasticNetPenalty(α))
-ElasticNetPenalty(α::Integer) = ElasticNetPenalty(Float64(α))
 for f in [:value, :deriv]
     @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
         p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
@@ -134,9 +136,11 @@ LogPenalty(η)
 """
 immutable LogPenalty{T <: Number} <: ElementPenalty
     η::T
+    function LogPenalty(η::T = 1.0) where T <: Number
+        η > 0 || throw(ArgumentError("η must be > 0"))
+        new{T}(η)
+    end
 end
-LogPenalty(η = 1.0) = (@assert η > 0; LogPenalty(η))
-LogPenalty(η::Integer) = LogPenalty(Float64(η))
 value{T}(p::LogPenalty{T}, θ::T) = log(1 + p.η * abs(θ))
 deriv{T}(p::LogPenalty{T}, θ::T) = p.η * sign(θ) / (1 + p.η * abs(θ))
 
@@ -149,11 +153,11 @@ Smoothly Clipped Absolute Deviation Penalty
 immutable SCADPenalty{T <: Number} <: ElementPenalty
     a::T
     γ::T
-end
-function SCADPenalty(a = 3.7, γ = 1.0)
-    @assert a > 2
-    @assert γ > 0
-    SCADPenalty(a)
+    function SCADPenalty(a::T = 3.7, γ::T = 1.0) where T
+        a > 2 || throw(ArgumentError("First parameter must be > 2"))
+        γ > 0 || throw(ArgumentError("Second parameter must be > 0"))
+        new{T}(a, γ)
+    end
 end
 function value{T}(p::SCADPenalty{T}, θ::T)
     absθ = abs(θ)
@@ -193,8 +197,11 @@ MCPPenalty(γ) (MC+)
 """
 immutable MCPPenalty{T <: Number} <: ElementPenalty
     γ::T  # In paper, this is λ * γ
+    function MCPPenalty(γ::T = 2.0) where T
+        γ > 0 || throw(ArgumentError("γ must be > 0"))
+        new{T}(γ)
+    end
 end
-MCPPenalty(γ = 2.0) = (@assert γ > 0; MCPPenalty(γ))
 MCPPenalty(γ::Integer) = MCPPenalty(Float64(γ))
 function value{T}(p::MCPPenalty{T}, θ::T)
     t = abs(θ)
