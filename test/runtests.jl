@@ -4,8 +4,10 @@ P = PenaltyFunctions
 
 
 element_penalties = [NoPenalty(), L1Penalty(), L2Penalty(),
-                     ElasticNetPenalty(.7), MCPPenalty(1.),
-                     LogPenalty(1.), SCADPenalty(3.7)]
+                     ElasticNetPenalty(.7), ElasticNetPenalty(.7f0),
+                     MCPPenalty(1.), MCPPenalty(1f0), MCPPenalty(1),
+                     LogPenalty(1.), LogPenalty(1f0),
+                     SCADPenalty(3.7), SCADPenalty(3.7f0)]
 array_penalties = [NuclearNormPenalty(), GroupLassoPenalty(),
                    MahalanobisPenalty(rand(3,2))]
 
@@ -29,14 +31,15 @@ end
 
 @testset "ElementPenalty" begin
     function test_element_penalty(p::Penalty, θ::Number, s::Number, v1, v2, v3)
+        r(x) = Float32(round(x, 5)) # avoids floating point issues for different parameter types
         @testset "$(P.name(p))" begin
-            @test value(p, θ)   ≈ v1
-            @test deriv(p, θ)   ≈ v2
-            @test value.(p, fill(θ, 5)) ≈ fill(v1, 5)
-            @test deriv.(p, fill(θ, 5)) ≈ fill(v2, 5)
+            @test r(@inferred(value(p, θ))) ≈ r(v1)
+            @test r(@inferred(deriv(p, θ))) ≈ r(v2)
+            @test r.(value.(p, fill(θ, 5))) ≈ r.(fill(v1, 5))
+            @test r.(deriv.(p, fill(θ, 5))) ≈ r.(fill(v2, 5))
             if isa(p, ConvexElementPenalty)
-                @test prox(p, θ, s) ≈ v3
-                @test prox.(p, fill(θ, 5), s) ≈ fill(v3, 5)
+                @test r(@inferred(prox(p, θ, s))) ≈ r(v3)
+                @test r.(prox.(p, fill(θ, 5), s)) ≈ r.(fill(v3, 5))
             end
         end
     end
@@ -44,95 +47,114 @@ end
     θ, s = rand(), rand()
 
     @testset "Constructors" begin
-        NoPenalty()
-        L1Penalty()
-        L2Penalty()
+        @inferred NoPenalty()
+        @inferred L1Penalty()
+        @inferred L2Penalty()
 
-        ElasticNetPenalty()
-        ElasticNetPenalty(1.0)
+        @inferred ElasticNetPenalty()
+        @inferred ElasticNetPenalty(1.0)
 
-        SCADPenalty()
-        SCADPenalty(4.0)
-        SCADPenalty(4.0, 1.0)
+        @inferred SCADPenalty()
+        @inferred SCADPenalty(4.0)
+        @inferred SCADPenalty(4)
+        @inferred SCADPenalty(4, 1.)
+        @inferred SCADPenalty(4.0, 1.0)
         @test_throws Exception SCADPenalty(1.0)
         @test_throws Exception SCADPenalty(3.7, -1.)
+        @test typeof(SCADPenalty())         <: SCADPenalty{Float64}
+        @test typeof(SCADPenalty(4))        <: SCADPenalty{Int}
+        @test typeof(SCADPenalty(4, 1))     <: SCADPenalty{Int}
+        @test typeof(SCADPenalty(4f0))      <: SCADPenalty{Float32}
+        @test typeof(SCADPenalty(4f0, 1))   <: SCADPenalty{Float32}
+        @test typeof(SCADPenalty(4f0, 1.0)) <: SCADPenalty{Float64}
+        @test typeof(SCADPenalty(4, 1.0))   <: SCADPenalty{Float64}
+        @test typeof(SCADPenalty(4.0, 1.0)) <: SCADPenalty{Float64}
 
-        LogPenalty()
-        LogPenalty(1.0)
+        @inferred LogPenalty()
+        @inferred LogPenalty(1.0)
         @test_throws Exception LogPenalty(-1.0)
 
-        MCPPenalty()
-        MCPPenalty(1.0)
+        @inferred MCPPenalty()
+        @inferred MCPPenalty(1.0)
         @test_throws Exception MCPPenalty(-1.0)
     end
 
-    test_element_penalty(NoPenalty(), θ, s, 0.0, 0.0, θ)
-    test_element_penalty(L1Penalty(), θ, s, abs(θ), sign(θ), max(0.0, θ - sign(θ) * s))
-    test_element_penalty(L2Penalty(), θ, s, .5 * θ^2, θ, θ / (1 + s))
-    test_element_penalty(ElasticNetPenalty(.4), θ, s,
-        .4 * value(L1Penalty(), θ) + .6 * value(L2Penalty(), θ),
-        .4 * deriv(L1Penalty(), θ) + .6 * deriv(L2Penalty(), θ),
-        prox(L2Penalty(), prox(L1Penalty(), θ, .4s), .6s)
-    )
+    for T in (Float32, Float64), S in (Float32, Float64)
+        test_element_penalty(NoPenalty(), T(θ), S(s), 0.0, 0.0, θ)
+        test_element_penalty(L1Penalty(), T(θ), S(s), abs(θ), sign(θ), max(0.0, θ - sign(θ) * s))
+        test_element_penalty(L2Penalty(), T(θ), S(s), .5 * θ^2, θ, θ / (1 + s))
+        test_element_penalty(ElasticNetPenalty(.4), T(θ), S(s),
+            .4 * value(L1Penalty(), θ) + .6 * value(L2Penalty(), θ),
+            .4 * deriv(L1Penalty(), θ) + .6 * deriv(L2Penalty(), θ),
+            prox(L2Penalty(), prox(L1Penalty(), θ, .4s), .6s)
+        )
 
-    test_element_penalty(LogPenalty(1.0), θ, s, log(1 + θ), 1 / (1 + θ), nothing)
-    test_element_penalty(MCPPenalty(2.0), 1.0, s, 1 - 1/4, 1 - 1/2, nothing)
-    test_element_penalty(MCPPenalty(1.0), 2.0, s, 1/2, 0.0, nothing)
+        test_element_penalty(LogPenalty(1.0), T(θ), S(s), log(1 + θ), 1 / (1 + θ), nothing)
+        test_element_penalty(MCPPenalty(2.0), T(1.0), S(s), 1 - 1/4, 1 - 1/2, nothing)
+        test_element_penalty(MCPPenalty(1.0), T(2.0), S(s), 1/2, 0.0, nothing)
+    end
 
     @testset "SCADPenalty" begin
-        @test value(SCADPenalty(3.8, .2), .1) ≈ .02
-        @test value(SCADPenalty(3.8, .1), .2) ≈ -.5 * (.2^2 - .2^2 * 3.8 + .01) / (2.8)
-        @test value(SCADPenalty(3.8, .1), 9.) ≈ .5 * 4.8 * .01
+        for T in (Float32, Float64), S in (Float32, Float64)
+            r(x) = round(x, 8)
+            @test r(@inferred(value(SCADPenalty(T(3.8), T(.2)), S(.1)))) ≈ r(.02)
+            @test r(@inferred(value(SCADPenalty(T(3.8), T(.1)), S(.2)))) ≈ r(-.5 * (.2^2 - .2^2 * 3.8 + .01) / (2.8))
+            @test r(@inferred(value(SCADPenalty(T(3.8), T(.1)), S(9.)))) ≈ r(.5 * 4.8 * .01)
+            @test r(@inferred(value(SCADPenalty(T(3.8), T(.1)), 9)))     ≈ r(.5 * 4.8 * .01)
 
-        @test deriv(SCADPenalty(3.8, .2), .1) ≈ .2
-        @test deriv(SCADPenalty(3.8, .1), .2) ≈ .1 * (3.8 * .1 - .2) / (2.8 * .1)
-        @test deriv(SCADPenalty(3.8, .1), 9.) ≈ 0.
+            @test r(@inferred(deriv(SCADPenalty(T(3.8), T(.2)), S(.1)))) ≈ r(.2)
+            @test r(@inferred(deriv(SCADPenalty(T(3.8), T(.1)), S(.2)))) ≈ r(.1 * (3.8 * .1 - .2) / (2.8 * .1))
+            @test r(@inferred(deriv(SCADPenalty(T(3.8), T(.1)), S(9.)))) ≈ r(0.)
+            @test r(@inferred(deriv(SCADPenalty(T(3.8), T(.1)), 9)))     ≈ r(0.)
+        end
     end
 
     @testset "ElementPenalty methods" begin
         p = L1Penalty()
-        θ, s = rand(10), rand(10)
-        @testset "value" begin
-            @test value(p, θ)       ≈ sum(abs, θ)
-            @test value(p, θ, s[1]) ≈ s[1] * sum(abs, θ)
-            @test value(p, θ, s)    ≈ sum(s .* abs.(θ))
-        end
-        @testset "deriv/grad" begin
-            @test deriv(p, θ[1], s[1])  ≈ s[1] * sign(θ[1])
-            @test grad(p, θ)            ≈ sign.(θ)
-            @test grad(p, θ, s[1])      ≈ s[1] * sign.(θ)
-            @test grad(p, θ, s)         ≈ s .* sign.(θ)
-            @test deriv.(p, θ)       == grad(p, θ)
-            @test deriv.(p, θ, s[1]) == grad(p, θ, s[1])
-            @test deriv.(p, θ, s)    == grad(p, θ, s)
+        for T in (Float32, Float64), S in (Float32, Float64)
+            θ, s = rand(T, 10), rand(S, 10)
+            @testset "value" begin
+                @test round(@inferred(value(p, θ, s[1])),5) ≈ round(s[1] * sum(abs, θ),5)
+                @test @inferred(value(p, θ))       ≈ sum(abs, θ)
+                @test @inferred(value(p, θ, s))    ≈ sum(s .* abs.(θ))
+            end
+            @testset "deriv/grad" begin
+                @test @inferred(deriv(p, θ[1], s[1]))  ≈ s[1] * sign(θ[1])
+                @test @inferred(grad(p, θ))            ≈ sign.(θ)
+                @test @inferred(grad(p, θ, s[1]))      ≈ s[1] * sign.(θ)
+                @test @inferred(grad(p, θ, s))         ≈ s .* sign.(θ)
+                @test deriv.(p, θ)       == grad(p, θ)
+                @test deriv.(p, θ, s[1]) == grad(p, θ, s[1])
+                @test deriv.(p, θ, s)    == grad(p, θ, s)
 
-            buffer = rand(10)
-            grad!(buffer, p, θ); @test buffer       ≈ sign.(θ)
-            grad!(buffer, p, θ, s[1]); @test buffer ≈ s[1] * sign.(θ)
-            grad!(buffer, p, θ, s); @test buffer    ≈ s .* sign.(θ)
+                buffer = rand(10)
+                grad!(buffer, p, θ); @test buffer       ≈ sign.(θ)
+                grad!(buffer, p, θ, s[1]); @test buffer ≈ s[1] * sign.(θ)
+                grad!(buffer, p, θ, s); @test buffer    ≈ s .* sign.(θ)
 
-            addgrad(buffer[1], p, θ[1]) ≈ buffer[1] + sign(θ[1])
-            addgrad(buffer[1], p, θ[1], s[1]) ≈ buffer[1] + s[1] * sign(θ[1])
-            ∇ = rand(10)
-            ∇2 = copy(∇)
-            addgrad!(∇, p, θ); @test ∇ ≈ ∇2 + sign.(θ)
-            ∇ = rand(10)
-            ∇2 = copy(∇)
-            addgrad!(∇, p, θ, s[1]); @test ∇ ≈ ∇2 + s[1] * sign.(θ)
-            ∇ = rand(10)
-            ∇2 = copy(∇)
-            addgrad!(∇, p, θ, s); @test ∇ ≈ ∇2 + s .* sign.(θ)
-        end
-        @testset "prox" begin
-            p = L1Penalty()
-            θ2 = copy(θ)
-            prox!(p, θ, s[1]); @test θ ≈ P.soft_thresh.(θ2, s[1])
-            θ = copy(θ2)
-            prox!(p, θ, s); @test θ ≈ P.soft_thresh.(θ2, s)
+                addgrad(buffer[1], p, θ[1]) ≈ buffer[1] + sign(θ[1])
+                addgrad(buffer[1], p, θ[1], s[1]) ≈ buffer[1] + s[1] * sign(θ[1])
+                ∇ = rand(10)
+                ∇2 = copy(∇)
+                addgrad!(∇, p, θ); @test ∇ ≈ ∇2 + sign.(θ)
+                ∇ = rand(10)
+                ∇2 = copy(∇)
+                addgrad!(∇, p, θ, s[1]); @test ∇ ≈ ∇2 + s[1] * sign.(θ)
+                ∇ = rand(10)
+                ∇2 = copy(∇)
+                addgrad!(∇, p, θ, s); @test ∇ ≈ ∇2 + s .* sign.(θ)
+            end
+            @testset "prox" begin
+                p = L1Penalty()
+                θ2 = copy(θ)
+                prox!(p, θ, s[1]); @test θ ≈ P.soft_thresh.(θ2, s[1])
+                θ = copy(θ2)
+                prox!(p, θ, s); @test θ ≈ P.soft_thresh.(θ2, s)
 
-            θ = rand(5)
-            s = rand(5)
-            @test prox(p, θ, s) == map((x,y) -> prox(p, x, y), θ, s)
+                θ = rand(5)
+                s = rand(5)
+                @test @inferred(prox(p, θ, s)) == map((x,y) -> prox(p, x, y), θ, s)
+            end
         end
     end
 end
@@ -141,23 +163,26 @@ end
     for p in element_penalties
         s = scaled(p, .1)
         x = randn(5)
-        @test value(s, x)       ≈ value(p, x, .1)
-        @test deriv(s, x[1])    ≈ deriv(p, x[1], .1)
-        @test grad(s, x)        ≈ grad(p, x, .1)
+        # FIXME: @inference broken during tests (not in REPL though)
+        #        only for ElasticNetPenalty{Float64} for some reason
+        @test value(s, x) ≈ value(p, x, .1)
+        @test @inferred(deriv(s, x[1])) ≈ deriv(p, x[1], .1)
+        @test @inferred(grad(s, x))     ≈ grad(p, x, .1)
         if typeof(p) <: ConvexElementPenalty
-            @test prox(s, x)        ≈ prox(p, x, .1)
+            @test @inferred(prox(s, x)) ≈ prox(p, x, .1)
         end
     end
 
     p = ElasticNetPenalty(.7)
     s = scaled(p, .2)
     x = randn(5)
+    # FIXME: @inference broken during tests (not in REPL though)
     @test value(s, x) ≈ .2 * value(p, x)
-    @test deriv(s, x[1]) ≈ .2 * deriv(p, x[1])
-    @test grad(s, x) ≈ .2 * grad(p, x)
+    @test @inferred(deriv(s, x[1])) ≈ .2 * deriv(p, x[1])
+    @test @inferred(grad(s, x)) ≈ .2 * grad(p, x)
     @test deriv.(s, x) ≈ .2 * deriv.(p, x)
-    @test prox(s, x) ≈ prox(p, x, .2)
-    @test prox(s, x[1]) ≈ prox(p, x[1], .2)
+    @test @inferred(prox(s, x)) ≈ prox(p, x, .2)
+    @test @inferred(prox(s, x[1])) ≈ prox(p, x[1], .2)
 
     @test_throws ArgumentError scaled(p, -1.)
 end
@@ -167,6 +192,7 @@ end
         p = NuclearNormPenalty()
         Θ = randn(10, 5)
         s = .05
+        # FIXME: @inference broken. seems like a type instability
         @test value(p, Θ) ≈ sum(svd(Θ)[2])
         @test value(p, Θ, s) ≈ s * sum(svd(Θ)[2])
         prox!(p, Θ, s)
@@ -175,7 +201,7 @@ end
         p = GroupLassoPenalty()
         Θ = randn(10)
         s = .05
-        @test value(p, Θ) ≈ vecnorm(Θ)
+        @test @inferred(value(p, Θ)) ≈ vecnorm(Θ)
         prox!(p, Θ, s)
 
         Θ = .01 * ones(10)
@@ -186,14 +212,14 @@ end
         p = MahalanobisPenalty(C)
         θ = rand(10)
         s = .05
-        @test value(p, θ) ≈ 0.5 * dot(C * θ, C * θ)
+        @test @inferred(value(p, θ)) ≈ 0.5 * dot(C * θ, C * θ)
         prox!(p, θ, s)
     end
     @testset "ScaledArrayPenalty" begin
         p = GroupLassoPenalty()
         s = scaled(p, .1)
         Θ = randn(10)
-        @test value(p, Θ, .1) ≈ value(s, Θ)
+        @test @inferred(value(p, Θ, .1)) ≈ value(s, Θ)
 
         Θ2 = copy(Θ)
         prox!(p, Θ, .1); prox!(s, Θ2); @test Θ ≈ Θ2
