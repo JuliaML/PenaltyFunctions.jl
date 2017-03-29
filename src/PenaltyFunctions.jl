@@ -29,9 +29,9 @@ const AA{T, N} = AbstractArray{T, N}
 
 
 # common functions
-soft_thresh{T<:Number}(x::T, λ::T) = sign(x) * max(zero(T), abs(x) - λ)
+soft_thresh{T <: Number}(x::T, λ::Number) = sign(x) * max(zero(T), abs(x) - λ)
 
-function soft_thresh!{T<:Number}(x::AA{T}, λ::T)
+function soft_thresh!(x::AA{<:Number}, λ::Number)
     for i in eachindex(x)
         @inbounds x[i] = soft_thresh(x[i], λ)
     end

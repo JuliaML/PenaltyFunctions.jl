@@ -5,15 +5,15 @@ abstract type ArrayPenalty <: Penalty end
 name(p::ArrayPenalty) = replace(string(typeof(p)), "PenaltyFunctions.", "")
 
 #------------------------------------------------------------------# abstract methods
-value{T <: Number}(p::ArrayPenalty, A::AA{T}, λ::T) = λ * value(p, A)
+value(p::ArrayPenalty, A::AA{<:Number}, λ::Number) = λ * value(p, A)
 
 
 #----------------------------------------------------------------# NuclearNormPenalty
 immutable NuclearNormPenalty <: ArrayPenalty end
-function value{T <: Number}(p::NuclearNormPenalty, A::AbstractMatrix{T})
+function value(p::NuclearNormPenalty, A::AbstractMatrix{<:Number})
     >(size(A)...) ? trace(sqrtm(A'A)) : trace(sqrtm(A * A'))
 end
-function prox!{T <: Number}(p::NuclearNormPenalty, A::AbstractMatrix{T}, λ::T)
+function prox!(p::NuclearNormPenalty, A::AbstractMatrix{<:Number}, λ::Number)
     svdecomp = svdfact!(A)
     soft_thresh!(svdecomp.S, λ)
     copy!(A, full(svdecomp))
@@ -23,8 +23,8 @@ end
 #-----------------------------------------------------------------# GroupLassoPenalty
 "Group Lasso Penalty.  Able to set the entire vector (group) to 0."
 immutable GroupLassoPenalty <: ArrayPenalty end
-value{T <: Number}(p::GroupLassoPenalty, A::AA{T}) = vecnorm(A)
-function prox!{T <: Number}(p::GroupLassoPenalty, A::AA{T}, λ::T)
+value(p::GroupLassoPenalty, A::AA{<:Number}) = vecnorm(A)
+function prox!{T <: Number}(p::GroupLassoPenalty, A::AA{T}, λ::Number)
     denom = vecnorm(A)
     if denom <= λ
         fill!(A, zero(T))
@@ -53,13 +53,13 @@ end
 function MahalanobisPenalty{T}(C::AbstractMatrix{T}, λ::T = one(T))
     MahalanobisPenalty(C, C'C, lufact(C'C + I), λ)
 end
-value{T}(p::MahalanobisPenalty{T}, x::AbstractVector{T}) = T(0.5) * sum(abs2, p.C * x)
-function prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, λ::T)
+value{T}(p::MahalanobisPenalty{T}, x::AbstractVector{T}) = float(T)(0.5) * T(sum(abs2, p.C * x))
+function prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, λ::Number)
     if λ != p.λ
         p.λ = λ
         p.CtC_Iλ = lufact(p.CtC + I / λ)
     end
-    scale!(A, 1 / λ)
+    scale!(A, one(T) / λ)
     A_ldiv_B!(p.CtC_Iλ, A) # overwrites result in A
 end
 
@@ -73,5 +73,5 @@ scaled(p::ArrayPenalty, λ::Number) = (_scale_check(λ); ScaledArrayPenalty(p, �
 
 Base.show(io::IO, sp::ScaledArrayPenalty) = print(io, "$(sp.λ) * ($(sp.penalty))")
 
-value{T}(p::ScaledArrayPenalty{T}, θ::AA{T}) = p.λ * value(p.penalty, θ)
-prox!{T}(p::ScaledArrayPenalty{T}, θ::AA{T}) = prox!(p.penalty, θ, p.λ)
+value(p::ScaledArrayPenalty, θ::AA{<:Number}) = p.λ * value(p.penalty, θ)
+prox!(p::ScaledArrayPenalty, θ::AA{<:Number}) = prox!(p.penalty, θ, p.λ)

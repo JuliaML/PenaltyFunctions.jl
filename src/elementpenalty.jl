@@ -4,69 +4,66 @@ Penalties that are applied element-wise.
 abstract type ElementPenalty <: Penalty end
 abstract type ConvexElementPenalty <: ElementPenalty end  # only these have prox method
 
-# Make broadcast work for ElementPenalty
-Base.getindex(p::ElementPenalty, idx) = p
-Base.size(::ElementPenalty) = ()
-
 #-------------------------------------------------------------------------------# methods
-value{T}(p::ElementPenalty, θ::T, s::T)     = s * value(p, θ)
-value{T}(p::ElementPenalty, θ::AA{T})       = sum(x -> value(p, x), θ)
-value{T}(p::ElementPenalty, θ::AA{T}, s::T) = sum(x -> value(p, x, s), θ)
-function value{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})
+value(p::ElementPenalty, θ::Number, s::Number)       = s * value(p, θ)
+value(p::ElementPenalty, θ::AA{<:Number})            = sum(x -> value(p, x), θ)
+value(p::ElementPenalty, θ::AA{<:Number}, s::Number) = sum(x -> value(p, x, s), θ)
+function value{T <: Number,S <: Number}(p::ElementPenalty, θ::AA{T}, s::AA{S})
     @assert size(θ) == size(s)
-    result = zero(T)
-    for i in eachindex(θ)
-        @inbounds result += value(p, θ[i], s[i])
+    # TODO: make this work: Core.Inference.return_type(value, (typeof(p), T, S))
+    result = zero(value(p, first(θ), first(s)))
+    @inbounds for i in eachindex(θ, s)
+        result += value(p, θ[i], s[i])
     end
     result
 end
 
-prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::T) = map!(θj -> prox(p, θj, s), θ, θ)
-function prox!{T}(p::ConvexElementPenalty, θ::AA{T}, s::AA{T})
+prox!(p::ConvexElementPenalty, θ::AA{<:Number}, s::Number) = map!(θj -> prox(p, θj, s), θ, θ)
+function prox!(p::ConvexElementPenalty, θ::AA{<:Number}, s::AA{<:Number})
     @assert size(θ) == size(s)
-    for i in eachindex(θ)
-        @inbounds θ[i] = prox(p, θ[i], s[i])
+    @inbounds for i in eachindex(θ, s)
+        θ[i] = prox(p, θ[i], s[i])
     end
     θ
 end
-prox{T}(p::ConvexElementPenalty, θ::AA{T}, s::T)      = prox!(p, copy(θ), s)
-prox{T}(p::ConvexElementPenalty, θ::AA{T}, s::AA{T})  = prox!(p, copy(θ), s)
+prox(p::ConvexElementPenalty, θ::AA{<:Number}, s::Number)       = prox!(p, copy(θ), s)
+prox(p::ConvexElementPenalty, θ::AA{<:Number}, s::AA{<:Number}) = prox!(p, copy(θ), s)
 
-deriv{T}(p::ElementPenalty, θ::T, s::T) = s * deriv(p, θ)
-grad{T}(p::ElementPenalty, θ::AA{T})                = grad!(similar(θ), p, θ)
-grad{T}(p::ElementPenalty, θ::AA{T}, s::T)          = grad!(similar(θ), p, θ, s)
-grad{T}(p::ElementPenalty, θ::AA{T}, s::AA{T})      = grad!(similar(θ), p, θ, s)
-grad!{T}(storage::AA{T}, p::ElementPenalty, θ::AA{T}) = map!(x -> deriv(p, x), storage, θ)
-function grad!{T}(storage::AA{T}, p::ElementPenalty, θ::AA{T}, s::T)
+deriv(p::ElementPenalty, θ::Number, s::Number) = s * deriv(p, θ)
+grad(p::ElementPenalty, θ::AA{<:Number})       = grad!(similar(θ), p, θ)
+grad{T<:Number,S<:Number}(p::ElementPenalty, θ::AA{T}, s::S)     = grad!(similar(θ, float(promote_type(T, S))), p, θ, s)
+grad{T<:Number,S<:Number}(p::ElementPenalty, θ::AA{T}, s::AA{S}) = grad!(similar(θ, float(promote_type(T, S))), p, θ, s)
+grad!(storage::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number}) = map!(x -> deriv(p, x), storage, θ)
+function grad!(storage::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number}, s::Number)
     map!(x -> deriv(p, x, s), storage, θ)
 end
-function grad!{T}(storage::AA{T}, p::ElementPenalty, θ::AA{T}, s::AA{T})
+function grad!(storage::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number}, s::AA{<:Number})
     @assert size(storage) == size(θ) == size(s)
-    for j in eachindex(θ)
-        @inbounds storage[j] = deriv(p, θ[j], s[j])
+    @inbounds for j in eachindex(θ, s)
+        storage[j] = deriv(p, θ[j], s[j])
     end
     storage
 end
 
-addgrad{T}(∇j::T, p::ElementPenalty, θj::T) = ∇j + deriv(p, θj)
-addgrad{T}(∇j::T, p::ElementPenalty, θj::T, s::T) = ∇j + s * deriv(p, θj)
-function addgrad!{T}(∇::AA{T}, p::ElementPenalty, θ::AA{T})
+addgrad(∇j::Number, p::ElementPenalty, θj::Number) = ∇j + deriv(p, θj)
+addgrad(∇j::Number, p::ElementPenalty, θj::Number, s::Number) = ∇j + s * deriv(p, θj)
+function addgrad!(∇::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number})
     @assert size(∇) == size(θ)
-    @inbounds for j in eachindex(∇)
+    @inbounds for j in eachindex(∇, θ)
         ∇[j] = addgrad(∇[j], p, θ[j])
     end
     ∇
 end
-function addgrad!{T}(∇::AA{T}, p::ElementPenalty, θ::AA{T}, s::T)
+function addgrad!(∇::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number}, s::Number)
     @assert size(∇) == size(θ)
-    @inbounds for j in eachindex(∇)
+    @inbounds for j in eachindex(∇, θ)
         ∇[j] = addgrad(∇[j], p, θ[j], s)
     end
     ∇
 end
-function addgrad!{T}(∇::AA{T}, p::ElementPenalty, θ::AA{T}, s::AA{T})
+function addgrad!(∇::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number}, s::AA{<:Number})
     @assert size(∇) == size(θ) == size(s)
-    @inbounds for j in eachindex(∇)
+    @inbounds for j in eachindex(∇, θ, s)
         ∇[j] = addgrad(∇[j], p, θ[j], s[j])
     end
     ∇
@@ -81,7 +78,7 @@ Unpenalized
 immutable NoPenalty <: ConvexElementPenalty end
 value(p::NoPenalty, θ::Number) = zero(θ)
 deriv(p::NoPenalty, θ::Number) = zero(θ)
-prox{T <: Number}(p::NoPenalty, θ::T, s::T) = θ
+prox(p::NoPenalty,  θ::Number, s::Number) = θ
 
 
 """
@@ -92,7 +89,7 @@ L1Penalty aka LASSO
 immutable L1Penalty <: ConvexElementPenalty end
 value(p::L1Penalty, θ::Number) = abs(θ)
 deriv(p::L1Penalty, θ::Number) = sign(θ)
-prox{T <: Number}(p::L1Penalty, θ::T, s::T) = soft_thresh(θ, s)
+prox(p::L1Penalty,  θ::Number, s::Number) = soft_thresh(θ, s)
 
 
 """
@@ -101,9 +98,9 @@ L2Penalty aka Ridge
 `g(θ) = .5 * θ ^ 2`
 """
 immutable L2Penalty <: ConvexElementPenalty end
-value(p::L2Penalty, θ::Number) = typeof(θ)(0.5) * θ * θ
+value{T <: Number}(p::L2Penalty, θ::T) = (T(1)/T(2)) * θ * θ
 deriv(p::L2Penalty, θ::Number) = θ
-prox{T <: Number}(p::L2Penalty, θ::T, s::T) = θ / (one(T) + s)
+prox{T <: Number}(p::L2Penalty, θ::T, s::Number) = θ / (one(T) + s)
 
 
 """
@@ -118,12 +115,12 @@ immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty
         new{T}(α)
     end
 end
-for f in [:value, :deriv]
-    @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::T)
-        p.α * ($f)(L1Penalty(), θ) + (1 - p.α) * ($f)(L2Penalty(), θ)
+for f in (:value, :deriv)
+    @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::Number)
+        p.α * ($f)(L1Penalty(), θ) + (one(T) - p.α) * ($f)(L2Penalty(), θ)
     end
 end
-function prox{T <: Number}(p::ElasticNetPenalty{T}, θ::T, s::T)
+function prox{T <: Number}(p::ElasticNetPenalty{T}, θ::Number, s::Number)
     αs = p.α * s
     soft_thresh(θ, αs) / (one(T) + s - αs)
 end
@@ -141,8 +138,8 @@ immutable LogPenalty{T <: Number} <: ElementPenalty
         new{T}(η)
     end
 end
-value{T}(p::LogPenalty{T}, θ::T) = log(1 + p.η * abs(θ))
-deriv{T}(p::LogPenalty{T}, θ::T) = p.η * sign(θ) / (1 + p.η * abs(θ))
+value(p::LogPenalty, θ::Number) = log1p(p.η * abs(θ))
+deriv{T <: Number}(p::LogPenalty{T}, θ::Number) = p.η * sign(θ) / (one(T) + p.η * abs(θ))
 
 
 
@@ -153,30 +150,35 @@ Smoothly Clipped Absolute Deviation Penalty
 immutable SCADPenalty{T <: Number} <: ElementPenalty
     a::T
     γ::T
-    function SCADPenalty(a::T = 3.7, γ::T = 1.0) where T
+    function SCADPenalty{T}(a::T, γ::T) where T<:Number
         a > 2 || throw(ArgumentError("First parameter must be > 2"))
         γ > 0 || throw(ArgumentError("Second parameter must be > 0"))
         new{T}(a, γ)
     end
 end
-function value{T}(p::SCADPenalty{T}, θ::T)
+SCADPenalty{T<:Number}(a::T = 3.7, γ::T = T(1)) = SCADPenalty{T}(a, γ)
+SCADPenalty(a::Number, γ::Number)  = SCADPenalty(promote(a, γ)...)
+
+function value{T,S<:Number}(p::SCADPenalty{T}, θ::S)
     absθ = abs(θ)
+    R = float(promote_type(T, S))
     if absθ < p.γ
-        return p.γ * absθ
+        R(p.γ * absθ)
     elseif absθ <= p.γ * p.a
-        return -T(0.5) * (absθ ^ 2 - 2 * p.a * p.γ * absθ + p.γ ^ 2) / (p.a - one(T))
+        -R(0.5) * (absθ^2 - R(2) * p.a * p.γ * absθ + p.γ^2) / (p.a - one(R))
     else
-        return T(0.5) * (p.a + 1) * p.γ * p.γ
+        R(0.5) * (p.a + one(R)) * p.γ * p.γ
     end
 end
-function deriv{T}(p::SCADPenalty{T}, θ::T)
+function deriv{T,S<:Number}(p::SCADPenalty{T}, θ::S)
     absθ = abs(θ)
+    R = float(promote_type(T, S))
     if absθ < p.γ
-        return p.γ * sign(θ)
+        R(p.γ * sign(θ))
     elseif absθ <= p.γ * p.a
-        return -(absθ - p.a * p.γ * sign(θ)) / (p.a - 1)
+        R(-(absθ - p.a * p.γ * sign(θ)) / (p.a - one(R)))
     else
-        return zero(T)
+        zero(R)
     end
 end
 # function prox{T}(p::SCADPenalty{T}, θ::T, λ::T)
@@ -203,13 +205,13 @@ immutable MCPPenalty{T <: Number} <: ElementPenalty
     end
 end
 MCPPenalty(γ::Integer) = MCPPenalty(Float64(γ))
-function value{T}(p::MCPPenalty{T}, θ::T)
+function value{T <: Number}(p::MCPPenalty{T}, θ::Number)
     t = abs(θ)
-    t < p.γ ? t - t^2 / (2 * p.γ) : T(0.5) * p.γ
+    t < p.γ ? t - t^2 / (T(2) * p.γ) : (T(1)/T(2)) * p.γ
 end
-function deriv{T}(p::MCPPenalty{T}, θ::T)
+function deriv{T <: Number, S <: Number}(p::MCPPenalty{T}, θ::S)
     t = abs(θ)
-    t < p.γ ? sign(θ) * (1 - t / p.γ): 0.0
+    t < p.γ ? sign(θ) * (T(1) - t / p.γ): zero(float(promote_type(S,T)))
 end
 
 
@@ -230,7 +232,7 @@ function _scale_check(λ)
     λ >= 0 || throw(ArgumentError("Scale factor λ has to be strictly positive."))
 end
 
-immutable ScaledElementPenalty{T, P <: ElementPenalty} <: ElementPenalty
+immutable ScaledElementPenalty{T <: Number, P <: ElementPenalty} <: ElementPenalty
     penalty::P
     λ::T
 end
@@ -238,14 +240,14 @@ scaled(p::ElementPenalty, λ::Number) = (_scale_check(λ); ScaledElementPenalty(
 Base.show(io::IO, sp::ScaledElementPenalty) = print(io, "$(sp.λ) * ($(sp.penalty))")
 
 
-value{T}(p::ScaledElementPenalty{T}, θ::T) = p.λ * value(p.penalty, θ)
-deriv{T}(p::ScaledElementPenalty{T}, θ::T) = p.λ * deriv(p.penalty, θ)
-prox{T}(p::ScaledElementPenalty{T}, θ::T) = prox(p.penalty, θ, p.λ)
-prox{T}(p::ScaledElementPenalty{T}, θ::AA{T}) = prox(p.penalty, θ, p.λ)
+value(p::ScaledElementPenalty{<:Number}, θ::Number) = p.λ * value(p.penalty, θ)
+deriv(p::ScaledElementPenalty{<:Number}, θ::Number) = p.λ * deriv(p.penalty, θ)
+prox(p::ScaledElementPenalty{<:Number},  θ::Number) = prox(p.penalty, θ, p.λ)
+prox(p::ScaledElementPenalty{<:Number},  θ::AA{<:Number}) = prox(p.penalty, θ, p.λ)
 
 # SCAD is special
-for f in [:value, :deriv]
-    @eval function ($f){P <: SCADPenalty, T}(p::ScaledElementPenalty{T, P}, θ::T)
+for f in (:value, :deriv)
+    @eval function ($f)(p::ScaledElementPenalty{<:Number, <:SCADPenalty}, θ::Number)
         ($f)(p.penalty, θ, p.λ)
     end
 end
