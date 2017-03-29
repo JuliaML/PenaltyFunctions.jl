@@ -6,7 +6,7 @@ commonly used for regularization purposes in Machine Learning._
 
 | **Package Status** | **Package Evaluator** | **Build Status** |
 |:------------------:|:---------------------:|:----------------:|
-| [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | [![Pkg Eval 0.5](http://pkg.julialang.org/badges/PenaltyFunctions_0.5.svg)](http://pkg.julialang.org/?pkg=PenaltyFunctions) [![Pkg Eval 0.6](http://pkg.julialang.org/badges/PenaltyFunctions_0.6.svg)](http://pkg.julialang.org/?pkg=PenaltyFunctions) | [![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl) [![Build status](https://ci.appveyor.com/api/projects/status/7fcsct29x3m6f4n1?svg=true)](https://ci.appveyor.com/project/Evizero/penaltyfunctions-jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaML/PenaltyFunctions.jl/badge.svg?branch=josh)](https://coveralls.io/github/JuliaML/PenaltyFunctions.jl?branch=josh) |
+| [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | [![Pkg Eval 0.6](http://pkg.julialang.org/badges/PenaltyFunctions_0.6.svg)](http://pkg.julialang.org/?pkg=PenaltyFunctions) | [![Build Status](https://travis-ci.org/JuliaML/PenaltyFunctions.jl.svg?branch=master)](https://travis-ci.org/JuliaML/PenaltyFunctions.jl) [![Build status](https://ci.appveyor.com/api/projects/status/7fcsct29x3m6f4n1?svg=true)](https://ci.appveyor.com/project/Evizero/penaltyfunctions-jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaML/PenaltyFunctions.jl/badge.svg?branch=josh)](https://coveralls.io/github/JuliaML/PenaltyFunctions.jl?branch=josh) |
 
 ## Introduction
 
