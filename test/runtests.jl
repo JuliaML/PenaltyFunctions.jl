@@ -113,12 +113,12 @@ end
         p = L1Penalty()
         for T in (Float32, Float64), S in (Float32, Float64)
             θ, s = rand(T, 10), rand(S, 10)
-            @testset "value" begin
-                @test round(@inferred(value(p, θ, s[1])),5) ≈ round(s[1] * sum(abs, θ),5)
+            @testset "value: $T, $S" begin
+                @test round(@inferred(value(p, θ, s[1])), 4) ≈ round(s[1] * sum(abs, θ), 4)
                 @test @inferred(value(p, θ))       ≈ sum(abs, θ)
                 @test @inferred(value(p, θ, s))    ≈ sum(s .* abs.(θ))
             end
-            @testset "deriv/grad" begin
+            @testset "deriv/grad: $T, $S" begin
                 @test @inferred(deriv(p, θ[1], s[1]))  ≈ s[1] * sign(θ[1])
                 @test @inferred(grad(p, θ))            ≈ sign.(θ)
                 @test @inferred(grad(p, θ, s[1]))      ≈ s[1] * sign.(θ)
@@ -144,7 +144,7 @@ end
                 ∇2 = copy(∇)
                 addgrad!(∇, p, θ, s); @test ∇ ≈ ∇2 + s .* sign.(θ)
             end
-            @testset "prox" begin
+            @testset "prox: $T, $S" begin
                 p = L1Penalty()
                 θ2 = copy(θ)
                 prox!(p, θ, s[1]); @test θ ≈ P.soft_thresh.(θ2, s[1])
