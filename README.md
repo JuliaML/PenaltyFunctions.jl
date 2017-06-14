@@ -126,12 +126,10 @@ Penalty                | value on array
 
 ## Installation
 
-As of yet this package is not registered in `METADATA.jl`. If you
-would like to try it out you can do so using the following line
-of code.
+The package is registered in `METADATA.jl`.
 
 ```julia
-Pkg.clone("https://github.com/JuliaML/PenaltyFunctions.jl")
+Pkg.add("PenaltyFunctions")
 ```
 
 ## License
