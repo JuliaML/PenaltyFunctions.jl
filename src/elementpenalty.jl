@@ -239,6 +239,7 @@ end
 scaled(p::ElementPenalty, λ::Number) = (_scale_check(λ); ScaledElementPenalty(p, λ))
 Base.show(io::IO, sp::ScaledElementPenalty) = print(io, "$(sp.λ) * ($(sp.penalty))")
 
+Base.:(*)(λ::Number, p::ElementPenalty) = scaled(p, λ)
 
 value(p::ScaledElementPenalty{<:Number}, θ::Number) = p.λ * value(p.penalty, θ)
 deriv(p::ScaledElementPenalty{<:Number}, θ::Number) = p.λ * deriv(p.penalty, θ)
