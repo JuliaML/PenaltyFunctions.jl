@@ -166,6 +166,7 @@ end
         # FIXME: @inference broken during tests (not in REPL though)
         #        only for ElasticNetPenalty{Float64} for some reason
         @test value(s, x) ≈ value(p, x, .1)
+        @test value(s, x) == value(.1 * p, x)
         @test @inferred(deriv(s, x[1])) ≈ deriv(p, x[1], .1)
         @test @inferred(grad(s, x))     ≈ grad(p, x, .1)
         if typeof(p) <: ConvexElementPenalty
