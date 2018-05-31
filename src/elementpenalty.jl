@@ -211,7 +211,7 @@ function value{T <: Number}(p::MCPPenalty{T}, θ::Number)
 end
 function deriv{T <: Number, S <: Number}(p::MCPPenalty{T}, θ::S)
     t = abs(θ)
-    t < p.γ ? sign(θ) * (T(1) - t / p.γ): zero(float(promote_type(S,T)))
+    t < p.γ ? sign(θ) * (T(1) - t / p.γ) : zero(float(promote_type(S,T)))
 end
 
 
