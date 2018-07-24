@@ -1,5 +1,5 @@
 module Tests
-using PenaltyFunctions, Base.Test
+using PenaltyFunctions, LinearAlgebra, Test
 P = PenaltyFunctions
 
 
@@ -13,15 +13,15 @@ array_penalties = [NuclearNormPenalty(), GroupLassoPenalty(),
 
 penalty_list = vcat(element_penalties, array_penalties)
 
-info("Show methods:")
+@info "Show methods:"
 for p in penalty_list
-    print_with_color(:red, "  > $(string(p))\n")
-    print_with_color(:cyan, "  > $(string(scaled(p, .1)))\n")
+    printstyled("  > $(string(p))\n";             color = :green)
+    printstyled("  > $(string(scaled(p, .1)))\n"; color = :blue)
 end
 
 #---------------------------------------------------------------------------# Begin Tests
 println("\n")
-info("Begin Actual Tests")
+@info "Begin Actual Tests"
 @testset "Common" begin
     @test P.soft_thresh(1.0, 0.5) == 0.5
     @test P.soft_thresh!(ones(5), .5) == .5 * ones(5)
@@ -31,15 +31,15 @@ end
 
 @testset "ElementPenalty" begin
     function test_element_penalty(p::Penalty, θ::Number, s::Number, v1, v2, v3)
-        r(x) = Float32(round(x, 5)) # avoids floating point issues for different parameter types
+        r(x) = Float32(round(x; digits=5)) # avoids floating point issues for different parameter types
         @testset "$(P.name(p))" begin
             @test r(@inferred(value(p, θ))) ≈ r(v1)
             @test r(@inferred(deriv(p, θ))) ≈ r(v2)
-            @test r.(value.(p, fill(θ, 5))) ≈ r.(fill(v1, 5))
-            @test r.(deriv.(p, fill(θ, 5))) ≈ r.(fill(v2, 5))
-            if isa(p, ConvexElementPenalty)
+            @test r.(value.(Ref(p), fill(θ, 5))) ≈ r.(fill(v1, 5))
+            @test r.(deriv.(Ref(p), fill(θ, 5))) ≈ r.(fill(v2, 5))
+            if isa(p, P.ProxableElementPenalty)
                 @test r(@inferred(prox(p, θ, s))) ≈ r(v3)
-                @test r.(prox.(p, fill(θ, 5), s)) ≈ r.(fill(v3, 5))
+                @test r.(prox.(Ref(p), fill(θ, 5), Ref(s))) ≈ r.(fill(v3, 5))
             end
         end
     end
@@ -96,7 +96,7 @@ end
 
     @testset "SCADPenalty" begin
         for T in (Float32, Float64), S in (Float32, Float64)
-            r(x) = round(x, 8)
+            r(x) = round(x, digits=8)
             @test r(@inferred(value(SCADPenalty(T(3.8), T(.2)), S(.1)))) ≈ r(.02)
             @test r(@inferred(value(SCADPenalty(T(3.8), T(.1)), S(.2)))) ≈ r(-.5 * (.2^2 - .2^2 * 3.8 + .01) / (2.8))
             @test r(@inferred(value(SCADPenalty(T(3.8), T(.1)), S(9.)))) ≈ r(.5 * 4.8 * .01)
@@ -114,7 +114,7 @@ end
         for T in (Float32, Float64), S in (Float32, Float64)
             θ, s = rand(T, 10), rand(S, 10)
             @testset "value: $T, $S" begin
-                @test round(@inferred(value(p, θ, s[1])), 4) ≈ round(s[1] * sum(abs, θ), 4)
+                @test round(@inferred(value(p, θ, s[1])), digits=4) ≈ round(s[1] * sum(abs, θ), digits=4)
                 @test @inferred(value(p, θ))       ≈ sum(abs, θ)
                 @test @inferred(value(p, θ, s))    ≈ sum(s .* abs.(θ))
             end
@@ -123,9 +123,9 @@ end
                 @test @inferred(grad(p, θ))            ≈ sign.(θ)
                 @test @inferred(grad(p, θ, s[1]))      ≈ s[1] * sign.(θ)
                 @test @inferred(grad(p, θ, s))         ≈ s .* sign.(θ)
-                @test deriv.(p, θ)       == grad(p, θ)
-                @test deriv.(p, θ, s[1]) == grad(p, θ, s[1])
-                @test deriv.(p, θ, s)    == grad(p, θ, s)
+                @test deriv.(Ref(p), θ)       == grad(p, θ)
+                @test deriv.(Ref(p), θ, s[1]) == grad(p, θ, s[1])
+                @test deriv.(Ref(p), θ, s)    == grad(p, θ, s)
 
                 buffer = rand(10)
                 grad!(buffer, p, θ); @test buffer       ≈ sign.(θ)
@@ -169,7 +169,7 @@ end
         @test value(s, x) == value(.1 * p, x)
         @test @inferred(deriv(s, x[1])) ≈ deriv(p, x[1], .1)
         @test @inferred(grad(s, x))     ≈ grad(p, x, .1)
-        if typeof(p) <: ConvexElementPenalty
+        if typeof(p) <: P.ProxableElementPenalty
             @test @inferred(prox(s, x)) ≈ prox(p, x, .1)
         end
     end
@@ -181,7 +181,7 @@ end
     @test value(s, x) ≈ .2 * value(p, x)
     @test @inferred(deriv(s, x[1])) ≈ .2 * deriv(p, x[1])
     @test @inferred(grad(s, x)) ≈ .2 * grad(p, x)
-    @test deriv.(s, x) ≈ .2 * deriv.(p, x)
+    @test deriv.(Ref(s), x) ≈ .2 * deriv.(Ref(p), x)
     @test @inferred(prox(s, x)) ≈ prox(p, x, .2)
     @test @inferred(prox(s, x[1])) ≈ prox(p, x[1], .2)
 
@@ -194,15 +194,15 @@ end
         Θ = randn(10, 5)
         s = .05
         # FIXME: @inference broken. seems like a type instability
-        @test value(p, Θ) ≈ sum(svd(Θ)[2])
-        @test value(p, Θ, s) ≈ s * sum(svd(Θ)[2])
+        @test value(p, Θ) ≈ sum(svd(Θ).S)
+        @test value(p, Θ, s) ≈ s * sum(svd(Θ).S)
         prox!(p, Θ, s)
     end
     @testset "GroupLassoPenalty" begin
         p = GroupLassoPenalty()
         Θ = randn(10)
         s = .05
-        @test @inferred(value(p, Θ)) ≈ vecnorm(Θ)
+        @test @inferred(value(p, Θ)) ≈ norm(Θ)
         prox!(p, Θ, s)
 
         Θ = .01 * ones(10)

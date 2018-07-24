@@ -2,30 +2,30 @@
 Penalties that are applied to the entire parameter array only
 """
 abstract type ArrayPenalty <: Penalty end
-name(p::ArrayPenalty) = replace(string(typeof(p)), "PenaltyFunctions.", "")
+name(p::ArrayPenalty) = replace(string(typeof(p)), "PenaltyFunctions." => "")
 
 #------------------------------------------------------------------# abstract methods
 value(p::ArrayPenalty, A::AA{<:Number}, λ::Number) = λ * value(p, A)
 
 
 #----------------------------------------------------------------# NuclearNormPenalty
-immutable NuclearNormPenalty <: ArrayPenalty end
+struct NuclearNormPenalty <: ArrayPenalty end
 function value(p::NuclearNormPenalty, A::AbstractMatrix{<:Number})
-    >(size(A)...) ? trace(sqrtm(A'A)) : trace(sqrtm(A * A'))
+    >(size(A)...) ? tr(sqrt(A'A)) : tr(sqrt(A * A'))
 end
 function prox!(p::NuclearNormPenalty, A::AbstractMatrix{<:Number}, λ::Number)
-    svdecomp = svdfact!(A)
+    svdecomp = svd!(A)
     soft_thresh!(svdecomp.S, λ)
-    copy!(A, full(svdecomp))
+    copyto!(A, Matrix(svdecomp))
 end
 
 
 #-----------------------------------------------------------------# GroupLassoPenalty
 "Group Lasso Penalty.  Able to set the entire vector (group) to 0."
-immutable GroupLassoPenalty <: ArrayPenalty end
-value(p::GroupLassoPenalty, A::AA{<:Number}) = vecnorm(A)
-function prox!{T <: Number}(p::GroupLassoPenalty, A::AA{T}, λ::Number)
-    denom = vecnorm(A)
+struct GroupLassoPenalty <: ArrayPenalty end
+value(p::GroupLassoPenalty, A::AA{<:Number}) = norm(A)
+function prox!(p::GroupLassoPenalty, A::AA{T}, λ::Number) where {T <: Number}
+    denom = norm(A)
     if denom <= λ
         fill!(A, zero(T))
     else
@@ -44,28 +44,30 @@ end
 
 Supports a Mahalanobis distance penalty (`xᵀCᵀCx` for a vector `x`).
 """
-type MahalanobisPenalty{T <: Number} <: ArrayPenalty
-    C::AA{T,2}
-    CtC::AA{T,2}
-    CtC_Iλ::Base.LinAlg.LU{T, Matrix{T}} # LU factorization of C'C + I/λ
+mutable struct MahalanobisPenalty{T <: Number, S <: AA{T,2}} <: ArrayPenalty
+    C::S
+    CtC::S
+    CtC_Iλ::LU{T, Matrix{T}} # LU factorization of C'C + I/λ
     λ::T
 end
-function MahalanobisPenalty{T}(C::AbstractMatrix{T}, λ::T = one(T))
-    MahalanobisPenalty(C, C'C, lufact(C'C + I), λ)
+function MahalanobisPenalty(C::AbstractMatrix{T}, λ::T = one(T)) where {T<:Number}
+    MahalanobisPenalty(C, C'C, lu(C'C + I), λ)
 end
-value{T}(p::MahalanobisPenalty{T}, x::AbstractVector{T}) = float(T)(0.5) * T(sum(abs2, p.C * x))
-function prox!{T <: Number}(p::MahalanobisPenalty{T}, A::AA{T, 1}, λ::Number)
+function value(p::MahalanobisPenalty{T}, x::AbstractVector{T}) where {T <: Number}
+    inv(T(2)) * T(sum(abs2, p.C * x))
+end
+function prox!(p::MahalanobisPenalty{T}, A::AA{T, 1}, λ::Number) where {T <: Number}
     if λ != p.λ
         p.λ = λ
-        p.CtC_Iλ = lufact(p.CtC + I / λ)
+        p.CtC_Iλ = lu(p.CtC + I / λ)
     end
-    scale!(A, one(T) / λ)
-    A_ldiv_B!(p.CtC_Iλ, A) # overwrites result in A
+    rmul!(A, one(T) / λ)
+    ldiv!(p.CtC_Iλ, A) # overwrites result in A
 end
 
 
 #--------------------------------------------------------------------------------# scaled
-immutable ScaledArrayPenalty{T, P <: ArrayPenalty} <: ArrayPenalty
+struct ScaledArrayPenalty{T, P <: ArrayPenalty} <: ArrayPenalty
     penalty::P
     λ::T
 end
