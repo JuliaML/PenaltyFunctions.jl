@@ -2,8 +2,7 @@ __precompile__(true)
 
 module PenaltyFunctions
 
-importall LearnBase
-# export LearnBase
+using LearnBase, LinearAlgebra
 eval(Expr(:toplevel, Expr(:export, setdiff(names(LearnBase), [:LearnBase])...)))
 
 using RecipesBase
@@ -11,7 +10,7 @@ using RecipesBase
 export
     Penalty,
         ElementPenalty,
-            ConvexElementPenalty,
+            ProxableElementPenalty,
                 NoPenalty,
                 L1Penalty,
                 L2Penalty,
@@ -29,7 +28,7 @@ const AA{T, N} = AbstractArray{T, N}
 
 
 # common functions
-soft_thresh{T <: Number}(x::T, λ::Number) = sign(x) * max(zero(T), abs(x) - λ)
+soft_thresh(x::Number, λ::Number) = sign(x) * max(zero(x), abs(x) - λ)
 
 function soft_thresh!(x::AA{<:Number}, λ::Number)
     for i in eachindex(x)
@@ -39,9 +38,9 @@ function soft_thresh!(x::AA{<:Number}, λ::Number)
 end
 
 function name(p::Penalty)
-    s = replace(string(typeof(p)), "PenaltyFunctions.", "")
+    s = replace(string(typeof(p)), "PenaltyFunctions." => "")
     # s = replace(s, r"\{(.*)", "")
-    f = fieldnames(p)
+    f = fieldnames(typeof(p))
     flength = length(f)
     if flength > 0
         s *= "("

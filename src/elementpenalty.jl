@@ -2,15 +2,14 @@
 Penalties that are applied element-wise.
 """
 abstract type ElementPenalty <: Penalty end
-abstract type ConvexElementPenalty <: ElementPenalty end  # only these have prox method
+abstract type ProxableElementPenalty <: ElementPenalty end
 
 #-------------------------------------------------------------------------------# methods
 value(p::ElementPenalty, θ::Number, s::Number)       = s * value(p, θ)
 value(p::ElementPenalty, θ::AA{<:Number})            = sum(x -> value(p, x), θ)
 value(p::ElementPenalty, θ::AA{<:Number}, s::Number) = sum(x -> value(p, x, s), θ)
-function value{T <: Number,S <: Number}(p::ElementPenalty, θ::AA{T}, s::AA{S})
-    @assert size(θ) == size(s)
-    # TODO: make this work: Core.Inference.return_type(value, (typeof(p), T, S))
+function value(p::ElementPenalty, θ::AA{T}, s::AA{S}) where {T <: Number, S <: Number}
+    size(θ) == size(s) || error("lengths of parameter/weights do not match")
     result = zero(value(p, first(θ), first(s)))
     @inbounds for i in eachindex(θ, s)
         result += value(p, θ[i], s[i])
@@ -18,22 +17,28 @@ function value{T <: Number,S <: Number}(p::ElementPenalty, θ::AA{T}, s::AA{S})
     result
 end
 
-prox!(p::ConvexElementPenalty, θ::AA{<:Number}, s::Number) = map!(θj -> prox(p, θj, s), θ, θ)
-function prox!(p::ConvexElementPenalty, θ::AA{<:Number}, s::AA{<:Number})
+prox!(p::ProxableElementPenalty, θ::AA{<:Number}, s::Number) = map!(θj -> prox(p, θj, s), θ, θ)
+function prox!(p::ProxableElementPenalty, θ::AA{<:Number}, s::AA{<:Number})
     @assert size(θ) == size(s)
     @inbounds for i in eachindex(θ, s)
         θ[i] = prox(p, θ[i], s[i])
     end
     θ
 end
-prox(p::ConvexElementPenalty, θ::AA{<:Number}, s::Number)       = prox!(p, copy(θ), s)
-prox(p::ConvexElementPenalty, θ::AA{<:Number}, s::AA{<:Number}) = prox!(p, copy(θ), s)
+prox(p::ProxableElementPenalty, θ::AA{<:Number}, s::Number)       = prox!(p, copy(θ), s)
+prox(p::ProxableElementPenalty, θ::AA{<:Number}, s::AA{<:Number}) = prox!(p, copy(θ), s)
 
 deriv(p::ElementPenalty, θ::Number, s::Number) = s * deriv(p, θ)
-grad(p::ElementPenalty, θ::AA{<:Number})       = grad!(similar(θ), p, θ)
-grad{T<:Number,S<:Number}(p::ElementPenalty, θ::AA{T}, s::S)     = grad!(similar(θ, float(promote_type(T, S))), p, θ, s)
-grad{T<:Number,S<:Number}(p::ElementPenalty, θ::AA{T}, s::AA{S}) = grad!(similar(θ, float(promote_type(T, S))), p, θ, s)
-grad!(storage::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number}) = map!(x -> deriv(p, x), storage, θ)
+grad(p::ElementPenalty, θ::AA{<:Number}) = grad!(similar(θ), p, θ)
+function grad(p::ElementPenalty, θ::AA{T}, s::S) where {T<:Number, S<:Number}
+    grad!(similar(θ, float(promote_type(T, S))), p, θ, s)
+end
+function grad(p::ElementPenalty, θ::AA{T}, s::AA{S}) where {T<:Number, S<:Number}
+    grad!(similar(θ, float(promote_type(T, S))), p, θ, s)
+end
+function grad!(storage::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number})
+    map!(x -> deriv(p, x), storage, θ)
+end
 function grad!(storage::AA{<:Number}, p::ElementPenalty, θ::AA{<:Number}, s::Number)
     map!(x -> deriv(p, x, s), storage, θ)
 end
@@ -75,7 +80,7 @@ Unpenalized
 
 `g(θ) = 0`
 """
-immutable NoPenalty <: ConvexElementPenalty end
+struct NoPenalty <: ProxableElementPenalty end
 value(p::NoPenalty, θ::Number) = zero(θ)
 deriv(p::NoPenalty, θ::Number) = zero(θ)
 prox(p::NoPenalty,  θ::Number, s::Number) = θ
@@ -86,7 +91,7 @@ L1Penalty aka LASSO
 
 `g(θ) = abs(θ)`
 """
-immutable L1Penalty <: ConvexElementPenalty end
+struct L1Penalty <: ProxableElementPenalty end
 value(p::L1Penalty, θ::Number) = abs(θ)
 deriv(p::L1Penalty, θ::Number) = sign(θ)
 prox(p::L1Penalty,  θ::Number, s::Number) = soft_thresh(θ, s)
@@ -97,10 +102,10 @@ L2Penalty aka Ridge
 
 `g(θ) = .5 * θ ^ 2`
 """
-immutable L2Penalty <: ConvexElementPenalty end
-value{T <: Number}(p::L2Penalty, θ::T) = (T(1)/T(2)) * θ * θ
+struct L2Penalty <: ProxableElementPenalty end
+value(p::L2Penalty, θ::T) where {T <: Number} = inv(T(2)) * θ * θ
 deriv(p::L2Penalty, θ::Number) = θ
-prox{T <: Number}(p::L2Penalty, θ::T, s::Number) = θ / (one(T) + s)
+prox(p::L2Penalty, θ::Number, s::Number) = θ / (one(θ) + s)
 
 
 """
@@ -108,19 +113,19 @@ ElasticNetPenalty, weighted average of L1Penalty and L2Penalty
 
 `g(θ) = α * abs(θ) + (1 - α) * .5 * θ ^ 2`
 """
-immutable ElasticNetPenalty{T <: Number} <: ConvexElementPenalty
+struct ElasticNetPenalty{T <: Number} <: ProxableElementPenalty
     α::T
-    function ElasticNetPenalty(α::T = 0.5) where T <: Number
+    function ElasticNetPenalty(α::T = 0.5) where {T <: Number}
         0 <= α <= 1 || throw(ArgumentError("α must be in [0, 1]"))
         new{T}(α)
     end
 end
 for f in (:value, :deriv)
-    @eval function ($f){T <: Number}(p::ElasticNetPenalty{T}, θ::Number)
+    @eval function ($f)(p::ElasticNetPenalty{T}, θ::Number) where {T <: Number}
         p.α * ($f)(L1Penalty(), θ) + (one(T) - p.α) * ($f)(L2Penalty(), θ)
     end
 end
-function prox{T <: Number}(p::ElasticNetPenalty{T}, θ::Number, s::Number)
+function prox(p::ElasticNetPenalty{T}, θ::Number, s::Number) where {T <: Number}
     αs = p.α * s
     soft_thresh(θ, αs) / (one(T) + s - αs)
 end
@@ -131,15 +136,15 @@ LogPenalty(η)
 
 `g(θ) = log(1 + η * θ)`
 """
-immutable LogPenalty{T <: Number} <: ElementPenalty
+struct LogPenalty{T <: Number} <: ElementPenalty
     η::T
-    function LogPenalty(η::T = 1.0) where T <: Number
+    function LogPenalty(η::T = 1.0) where {T <: Number}
         η > 0 || throw(ArgumentError("η must be > 0"))
         new{T}(η)
     end
 end
 value(p::LogPenalty, θ::Number) = log1p(p.η * abs(θ))
-deriv{T <: Number}(p::LogPenalty{T}, θ::Number) = p.η * sign(θ) / (one(T) + p.η * abs(θ))
+deriv(p::LogPenalty{T}, θ::Number) where {T <: Number} = p.η * sign(θ) / (one(T) + p.η * abs(θ)) 
 
 
 
@@ -147,7 +152,7 @@ deriv{T <: Number}(p::LogPenalty{T}, θ::Number) = p.η * sign(θ) / (one(T) + p
 """
 Smoothly Clipped Absolute Deviation Penalty
 """
-immutable SCADPenalty{T <: Number} <: ElementPenalty
+struct SCADPenalty{T <: Number} <: ElementPenalty
     a::T
     γ::T
     function SCADPenalty{T}(a::T, γ::T) where T<:Number
@@ -156,10 +161,10 @@ immutable SCADPenalty{T <: Number} <: ElementPenalty
         new{T}(a, γ)
     end
 end
-SCADPenalty{T<:Number}(a::T = 3.7, γ::T = T(1)) = SCADPenalty{T}(a, γ)
-SCADPenalty(a::Number, γ::Number)  = SCADPenalty(promote(a, γ)...)
+SCADPenalty(a::T = 3.7, γ::T = T(1)) where {T <: Number} = SCADPenalty{T}(a, γ)
+SCADPenalty(a::Number, γ::Number) = SCADPenalty(promote(a, γ)...)
 
-function value{T,S<:Number}(p::SCADPenalty{T}, θ::S)
+function value(p::SCADPenalty{T}, θ::S) where {T, S <: Number}
     absθ = abs(θ)
     R = float(promote_type(T, S))
     if absθ < p.γ
@@ -170,7 +175,7 @@ function value{T,S<:Number}(p::SCADPenalty{T}, θ::S)
         R(0.5) * (p.a + one(R)) * p.γ * p.γ
     end
 end
-function deriv{T,S<:Number}(p::SCADPenalty{T}, θ::S)
+function deriv(p::SCADPenalty{T}, θ::S) where {T, S <: Number}
     absθ = abs(θ)
     R = float(promote_type(T, S))
     if absθ < p.γ
@@ -197,7 +202,7 @@ end
 """
 MCPPenalty(γ) (MC+)
 """
-immutable MCPPenalty{T <: Number} <: ElementPenalty
+struct MCPPenalty{T <: Number} <: ElementPenalty
     γ::T  # In paper, this is λ * γ
     function MCPPenalty(γ::T = 2.0) where T
         γ > 0 || throw(ArgumentError("γ must be > 0"))
@@ -205,11 +210,11 @@ immutable MCPPenalty{T <: Number} <: ElementPenalty
     end
 end
 MCPPenalty(γ::Integer) = MCPPenalty(Float64(γ))
-function value{T <: Number}(p::MCPPenalty{T}, θ::Number)
+function value(p::MCPPenalty{T}, θ::Number) where {T <: Number}
     t = abs(θ)
     t < p.γ ? t - t^2 / (T(2) * p.γ) : (T(1)/T(2)) * p.γ
 end
-function deriv{T <: Number, S <: Number}(p::MCPPenalty{T}, θ::S)
+function deriv(p::MCPPenalty{T}, θ::S) where {T <: Number, S <: Number}
     t = abs(θ)
     t < p.γ ? sign(θ) * (T(1) - t / p.γ) : zero(float(promote_type(S,T)))
 end
@@ -232,7 +237,7 @@ function _scale_check(λ)
     λ >= 0 || throw(ArgumentError("Scale factor λ has to be strictly positive."))
 end
 
-immutable ScaledElementPenalty{T <: Number, P <: ElementPenalty} <: ElementPenalty
+struct ScaledElementPenalty{T <: Number, P <: ElementPenalty} <: ElementPenalty
     penalty::P
     λ::T
 end
