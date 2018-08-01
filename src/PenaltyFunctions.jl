@@ -3,6 +3,7 @@ __precompile__(true)
 module PenaltyFunctions
 
 using LearnBase, LinearAlgebra
+import LearnBase: prox, deriv, value
 eval(Expr(:toplevel, Expr(:export, setdiff(names(LearnBase), [:LearnBase])...)))
 
 using RecipesBase
