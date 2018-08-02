@@ -61,7 +61,7 @@ include("elementpenalty.jl")
 include("arraypenalty.jl")
 
 # Make Penalties Callable
-for T in filter(isconcretetype, union(subtypes(ElementPenalty), 
+for T in filter(!isabstracttype, union(subtypes(ElementPenalty), 
                                       subtypes(ProxableElementPenalty), 
                                       subtypes(ArrayPenalty)))
     @eval (pen::$T)(args...) = value(pen, args...)

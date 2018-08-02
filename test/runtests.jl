@@ -37,6 +37,8 @@ end
             @test r(@inferred(deriv(p, θ))) ≈ r(v2)
             @test r.(value.(Ref(p), fill(θ, 5))) ≈ r.(fill(v1, 5))
             @test r.(deriv.(Ref(p), fill(θ, 5))) ≈ r.(fill(v2, 5))
+            @test value(p, θ) == p(θ)
+            @test value(p, θ, s) == p(θ, s)
             if isa(p, P.ProxableElementPenalty)
                 @test r(@inferred(prox(p, θ, s))) ≈ r(v3)
                 @test r.(prox.(Ref(p), fill(θ, 5), Ref(s))) ≈ r.(fill(v3, 5))
@@ -195,6 +197,7 @@ end
         s = .05
         # FIXME: @inference broken. seems like a type instability
         @test value(p, Θ) ≈ sum(svd(Θ).S)
+        @test value(p, Θ) == p(Θ)
         @test value(p, Θ, s) ≈ s * sum(svd(Θ).S)
         prox!(p, Θ, s)
     end
@@ -203,6 +206,7 @@ end
         Θ = randn(10)
         s = .05
         @test @inferred(value(p, Θ)) ≈ norm(Θ)
+        @test value(p, Θ) == p(Θ)
         prox!(p, Θ, s)
 
         Θ = .01 * ones(10)
@@ -212,6 +216,7 @@ end
         C = randn(5, 10)
         p = MahalanobisPenalty(C)
         θ = rand(10)
+        @test value(p, θ) == p(θ)
         s = .05
         @test @inferred(value(p, θ)) ≈ 0.5 * dot(C * θ, C * θ)
         prox!(p, θ, s)
@@ -220,6 +225,7 @@ end
         p = GroupLassoPenalty()
         s = scaled(p, .1)
         Θ = randn(10)
+        @test value(p, Θ) == p(Θ)
         @test @inferred(value(p, Θ, .1)) ≈ value(s, Θ)
 
         Θ2 = copy(Θ)
