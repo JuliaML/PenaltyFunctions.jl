@@ -2,7 +2,7 @@ __precompile__(true)
 
 module PenaltyFunctions
 
-using LearnBase, LinearAlgebra
+using LearnBase, LinearAlgebra, InteractiveUtils
 import LearnBase: prox, deriv, value
 eval(Expr(:toplevel, Expr(:export, setdiff(names(LearnBase), [:LearnBase])...)))
 
@@ -59,5 +59,12 @@ Base.show(io::IO, p::Penalty) = print(io, name(p))
 
 include("elementpenalty.jl")
 include("arraypenalty.jl")
+
+# Make Penalties Callable
+for T in filter(isconcretetype, union(subtypes(ElementPenalty), 
+                                      subtypes(ProxableElementPenalty), 
+                                      subtypes(ArrayPenalty)))
+    @eval (pen::$T)(args...) = value(pen, args...)
+end
 
 end
