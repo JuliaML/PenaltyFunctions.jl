@@ -2,7 +2,7 @@ module PenaltyFunctions
 
 using LinearAlgebra, InteractiveUtils, Reexport, RecipesBase
 @reexport using LearnBase
-import LearnBase: prox, deriv, value, grad, grad!, addgrad!, scaled
+import LearnBase: prox, prox!, deriv, value, grad, grad!, addgrad!, scaled
 
 export
     Penalty,
