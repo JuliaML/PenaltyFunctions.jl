@@ -2,9 +2,7 @@ module PenaltyFunctions
 
 using LinearAlgebra, InteractiveUtils, RecipesBase
 
-import LearnBase: prox, prox!, deriv, value, grad, grad!, addgrad!, scaled
-
-export prox, prox!, deriv, value, grad, grad!, addgrad!, scaled
+import LearnBase: Penalty, prox, prox!, deriv, value, grad, grad!, addgrad!, scaled
 
 export
     Penalty,
@@ -21,7 +19,7 @@ export
             NuclearNormPenalty,
             GroupLassoPenalty,
             MahalanobisPenalty,
-    addgrad
+    addgrad, prox, prox!, deriv, value, grad, grad!, addgrad!, scaled
 
 const AA{T, N} = AbstractArray{T, N}
 
