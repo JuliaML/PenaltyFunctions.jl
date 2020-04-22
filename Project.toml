@@ -1,6 +1,6 @@
 name = "PenaltyFunctions"
 uuid = "06bb1623-fdd5-5ca2-a01c-88eae3ea319e"
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
