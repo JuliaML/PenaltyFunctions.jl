@@ -1,8 +1,18 @@
 module PenaltyFunctions
 
-using LinearAlgebra, InteractiveUtils, RecipesBase
+using LinearAlgebra
+using InteractiveUtils
+using RecipesBase
 
-import LearnBase: Penalty, prox, prox!, deriv, value, grad, grad!, addgrad!, scaled
+# trait functions
+include("traits.jl")
+
+# penalty functions
+include("penalties.jl")
+
+# IO and plot recipes
+include("printing.jl")
+include("plotrecipes.jl")
 
 export
     Penalty,
@@ -20,47 +30,5 @@ export
             GroupLassoPenalty,
             MahalanobisPenalty,
     addgrad, prox, prox!, deriv, value, grad, grad!, addgrad!, scaled
-
-const AA{T, N} = AbstractArray{T, N}
-
-
-# common functions
-soft_thresh(x::Number, λ::Number) = sign(x) * max(zero(x), abs(x) - λ)
-
-function soft_thresh!(x::AA{<:Number}, λ::Number)
-    for i in eachindex(x)
-        @inbounds x[i] = soft_thresh(x[i], λ)
-    end
-    x
-end
-
-function name(p::Penalty)
-    s = replace(string(typeof(p)), "PenaltyFunctions." => "")
-    # s = replace(s, r"\{(.*)", "")
-    f = fieldnames(typeof(p))
-    flength = length(f)
-    if flength > 0
-        s *= "("
-        for (i, field) in enumerate(f)
-            s *= "$field = $(getfield(p, field))"
-            if i < flength
-                s *= ", "
-            end
-        end
-        s *= ")"
-    end
-    s
-end
-Base.show(io::IO, p::Penalty) = print(io, name(p))
-
-include("elementpenalty.jl")
-include("arraypenalty.jl")
-
-# Make Penalties Callable
-for T in filter(!isabstracttype, union(subtypes(ElementPenalty), 
-                                      subtypes(ProxableElementPenalty), 
-                                      subtypes(ArrayPenalty)))
-    @eval (pen::$T)(args...) = value(pen, args...)
-end
 
 end
