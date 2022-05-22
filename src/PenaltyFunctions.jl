@@ -8,7 +8,7 @@ using RecipesBase
 include("traits.jl")
 
 # penalty functions
-include("penalties.jl")
+include("common.jl")
 
 # IO and plot recipes
 include("printing.jl")

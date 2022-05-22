@@ -16,4 +16,7 @@ function name(p::Penalty)
     s
 end
 
+name(p::ArrayPenalty) = replace(string(typeof(p)), "PenaltyFunctions." => "")
+
 Base.show(io::IO, p::Penalty) = print(io, name(p))
+Base.show(io::IO, sp::ScaledArrayPenalty) = print(io, "$(sp.λ) * ($(sp.penalty))")
