@@ -1,6 +1,6 @@
 name = "PenaltyFunctions"
 uuid = "06bb1623-fdd5-5ca2-a01c-88eae3ea319e"
-version = "0.2.2"
+version = "0.2.3"
 
 [deps]
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -9,12 +9,6 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 
 [compat]
-LearnBase = "0.2, 0.3"
-RecipesBase = "0.5, 0.6, 0.7, 0.8, 1"
-julia = "1"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
+LearnBase = "0.6"
+RecipesBase = "1.0"
+julia = "1.6"
