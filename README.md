@@ -36,7 +36,7 @@ coefficients. What exactly "simpler" means depends on the chosen
 penalty. In general terms: penalties help to reduce the
 possibility of overfitting.
 
-## Available Penalties
+## Available penalties
 
 This package implements a number of carefully crafted penalty
 functions, as well as an API to query their properties (e.g.
@@ -46,7 +46,7 @@ and even arrays of arbitrary dimensionality. The provided penalty
 functions fall into one of two main families, namely **Element
 Penalties** and **Array Penalties**.
 
-### Element Penalties
+### Element penalties
 
 The first family of penalty functions contains all those that
 apply to to the individual elements of `θ` element-wise. The
@@ -114,7 +114,7 @@ prox!(p, x, s[1])   # overwrite x, scaled by scalar
 prox!(p, x, s)      # overwrite x, element-wise scaling
 ```
 
-### Array Penalties
+### Array penalties
 
 The second family of penalty functions contains all those that
 that need to be evaluated on the entire coefficient array `θ` at
